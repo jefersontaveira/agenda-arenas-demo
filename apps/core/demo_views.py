@@ -12,6 +12,17 @@ SEED_DB = BASE_DIR / 'db_seed_clean.sqlite3'
 ACTIVE_DB = BASE_DIR / 'db.sqlite3'
 
 
+def ensure_active_database():
+    """Garante que o banco ativo exista e esteja inicializado com o seed limpo."""
+    try:
+        if not ACTIVE_DB.exists() or ACTIVE_DB.stat().st_size == 0:
+            if SEED_DB.exists():
+                connections.close_all()
+                shutil.copyfile(SEED_DB, ACTIVE_DB)
+    except Exception as e:
+        print(f"[WARN] Erro ao assegurar banco ativo: {e}")
+
+
 def demo_autologin_view(request):
     """
     Realiza o login automatico do visitante como gestor da arena demonstrativa
@@ -21,13 +32,27 @@ def demo_autologin_view(request):
     if not getattr(settings, 'DEMO_MODE', True):
         return HttpResponseForbidden("Modo demonstração desativado neste ambiente de produção.")
 
+    ensure_active_database()
+
     try:
         user = User.objects.get(username='demo_gestor')
         user.backend = 'django.contrib.auth.backends.ModelBackend'
         login(request, user)
         request.session.save()
         return HttpResponseRedirect('/gestao/arena-demo/')
-    except User.DoesNotExist:
+    except Exception:
+        # Se o banco foi clonado sem o arquivo ativo, força a cópia do snapshot limpo e autentica
+        try:
+            if SEED_DB.exists():
+                connections.close_all()
+                shutil.copyfile(SEED_DB, ACTIVE_DB)
+                user = User.objects.get(username='demo_gestor')
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                login(request, user)
+                request.session.save()
+                return HttpResponseRedirect('/gestao/arena-demo/')
+        except Exception:
+            pass
         return HttpResponseRedirect('/accounts/login/')
 
 

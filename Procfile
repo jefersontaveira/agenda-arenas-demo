@@ -1,1 +1,1 @@
-web: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
+web: python -c "import shutil, os; shutil.copyfile('db_seed_clean.sqlite3', 'db.sqlite3') if (not os.path.exists('db.sqlite3') or os.path.getsize('db.sqlite3') == 0) and os.path.exists('db_seed_clean.sqlite3') else None" && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
