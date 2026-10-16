@@ -1,0 +1,218 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<!-- Flash message container para operações AJAX -->
+<div id="ajax-flash-container"></div>
+
+<div class="container-fluid py-3">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 mb-1">Detalhes da Turma</h1>
+            <p class="text-body-secondary small mb-0">Visualize os horários e alunos da turma.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
+            <a href="{% url 'lessons:aulas' arena_slug=arena.slug %}" class="btn btn-action">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <a href="{% url 'lessons:class_update' arena_slug=arena.slug pk=turma.pk %}" class="btn btn-action-primary">
+                <i class="bi bi-pencil me-1"></i> Editar
+            </a>
+            <button type="button" class="btn btn-action-danger" title="Excluir Turma"
+                    data-id="{{ turma.pk }}"
+                    data-name="{{ turma.name|escape }}"
+                    data-students="{{ turma.active_students_count }}"
+                    data-url="{% url 'lessons:class_delete' arena_slug=arena.slug pk=turma.pk %}"
+                    onclick="openDeleteClassModal(this);">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Coluna de Informações da Turma -->
+        <div class="col-12 col-md-5 col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4 text-center">
+                    <div class="rounded-circle bg-warning bg-opacity-25 text-warning d-flex align-items-center justify-content-center mx-auto mb-3 border border-warning" style="width: 80px; height: 80px;">
+                        <i class="bi bi-calendar-check fs-1"></i>
+                    </div>
+                    <h4 class="fw-bold mb-1">{{ turma.name }}</h4>
+                    <p class="text-muted small mb-3">
+                        {% if turma.is_active %}
+                            <span class="badge bg-success">Turma Ativa</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inativa</span>
+                        {% endif %}
+                    </p>
+                    
+                    <hr class="opacity-10">
+
+                    <div class="text-start mt-4">
+                        <h6 class="fw-bold text-uppercase text-muted small mb-3">Informações da Turma</h6>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Professor(a)</label>
+                            <span class="fw-medium">{{ turma.teacher.name|default:"Sem Professor" }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Quadra</label>
+                            <span class="fw-medium">{{ turma.court.name|default:"Não Definida" }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Valor da Mensalidade</label>
+                            <span class="fw-medium">R$ {{ turma.monthly_price }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Ocupação</label>
+                            <div class="progress mt-2" style="height: 10px;">
+                                {% widthratio turma.active_students_count turma.max_students 100 as percentage %}
+                                <div class="progress-bar {% if turma.active_students_count >= turma.max_students %}bg-danger{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ percentage }}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <span class="fw-bold d-block mt-1">{{ turma.active_students_count }} / {{ turma.max_students }} alunos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna de Horários e Alunos -->
+        <div class="col-12 col-md-7 col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-bottom px-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history text-warning me-2"></i> Horários de Aula</h5>
+                </div>
+                <div class="card-body p-4">
+                    {% if turma.schedules.exists %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for schedule in turma.schedules.all %}
+                            <div class="badge bg-light text-dark border p-2">
+                                <i class="bi bi-calendar-event me-1 text-primary"></i> 
+                                {{ schedule.get_day_of_week_display }} &bull; {{ schedule.start_time|time:"H:i" }} às {{ schedule.end_time|time:"H:i" }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0 opacity-75 fst-italic">Nenhum horário cadastrado para esta turma.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mt-4">
+                 <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-people text-warning me-2"></i> Alunos Matriculados</h5>
+                    <button type="button" class="btn btn-sm btn-action" onclick="openNewEnrollmentModal({{ turma.pk }});">
+                        <i class="bi bi-plus-lg me-1"></i> Adicionar Aluno
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 table-hover">
+                            <thead class="bg-light text-nowrap">
+                                <tr>
+                                    <th class="ps-3 d-md-none">Aluno</th>
+                                    <th class="ps-4 d-none d-md-table-cell">Aluno</th>
+                                    <th class="d-none d-md-table-cell">Status</th>
+                                    <th class="d-none d-md-table-cell">Valor Acordado</th>
+                                    <th class="text-end pe-4 d-none d-md-table-cell" style="width: 100px;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for enrollment in turma.enrollments.all %}
+                                <tr class="cursor-pointer hover-bg-light transition-all" onclick="window.location.href='{% url 'lessons:student_detail' arena_slug=arena.slug pk=enrollment.pk %}'">
+                                    <!-- VISÃO MOBILE/TABLET -->
+                                    <td class="d-md-none p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <div class="fw-bold text-body fs-6">{{ enrollment.customer.name }}</div>
+                                                <small class="text-body-secondary text-nowrap"><i class="bi bi-whatsapp me-1 text-success"></i>{{ enrollment.customer.formatted_phone|default:"-" }}</small>
+                                            </div>
+                                            <div class="text-end">
+                                                {% if enrollment.status == 'ACTIVE' %}
+                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Ativo</span>
+                                                {% elif enrollment.status == 'TRIAL' %}
+                                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Experimental</span>
+                                                {% elif enrollment.status == 'PAUSED' %}
+                                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Suspenso</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Cancelado</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                            <div class="fw-medium text-body-secondary">
+                                                <small>Valor:</small> R$ {{ enrollment.agreed_price }}
+                                            </div>
+                                            <div class="d-flex gap-2" onclick="event.stopPropagation();">
+                                                <a href="{% url 'lessons:enrollment_update' arena_slug=arena.slug pk=enrollment.pk %}" class="btn btn-sm btn-action" title="Editar Matrícula">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-action-danger" title="Excluir Matrícula"
+                                                    data-id="{{ enrollment.pk }}"
+                                                    data-name="{{ enrollment.customer.name }}"
+                                                    data-url="{% url 'lessons:enrollment_delete' arena_slug=arena.slug pk=enrollment.pk %}"
+                                                    onclick="openDeleteEnrollmentModal(this);">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- VISÃO DESKTOP -->
+                                    <td class="ps-4 d-none d-md-table-cell">
+                                        <div class="fw-bold">{{ enrollment.customer.name }}</div>
+                                        <small class="text-muted text-nowrap"><i class="bi bi-whatsapp me-1"></i>{{ enrollment.customer.formatted_phone|default:"-" }}</small>
+                                    </td>
+                                    <td class="d-none d-md-table-cell">
+                                        {% if enrollment.status == 'ACTIVE' %}
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Ativo</span>
+                                        {% elif enrollment.status == 'TRIAL' %}
+                                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Experimental</span>
+                                        {% elif enrollment.status == 'PAUSED' %}
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Suspenso</span>
+                                        {% else %}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Cancelado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-medium d-none d-md-table-cell">
+                                        R$ {{ enrollment.agreed_price }}
+                                    </td>
+                                    <td class="text-end pe-4 d-none d-md-table-cell text-nowrap">
+                                        <div class="d-inline-flex gap-1" onclick="event.stopPropagation();">
+                                            <a href="{% url 'lessons:enrollment_update' arena_slug=arena.slug pk=enrollment.pk %}" class="btn btn-sm btn-action" title="Editar Matrícula">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-action-danger" title="Excluir Matrícula"
+                                                data-id="{{ enrollment.pk }}"
+                                                data-name="{{ enrollment.customer.name }}"
+                                                data-url="{% url 'lessons:enrollment_delete' arena_slug=arena.slug pk=enrollment.pk %}"
+                                                onclick="openDeleteEnrollmentModal(this);">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        Nenhum aluno matriculado nesta turma.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+{% include 'lessons/modals/_class_modal.html' %}
+{% include 'lessons/modals/_enrollment_modal.html' %}
+
+{% endblock %}

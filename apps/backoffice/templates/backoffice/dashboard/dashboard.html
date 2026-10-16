@@ -1,0 +1,743 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+
+<div id="dashboard-wrapper">
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-3 mb-3 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h2 mb-0">Controle de Reservas</h1>
+                <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success-subtle d-inline-flex align-items-center gap-1 px-2 py-1 shadow-xs" id="realtimeBadge" title="Escuta ativa: monitorando novas reservas e pagamentos em tempo real">
+                    <span class="spinner-grow spinner-grow-sm text-success" style="width: 7px; height: 7px;" role="status"></span>
+                    <span style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px;">ESCUTA ATIVA</span>
+                </span>
+            </div>
+            <p class="text-body-secondary small mb-0">{{ arena.name }} - {{ current_date|date:"l, d \d\e F \d\e Y" }}</p>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1 shadow-sm" id="btnToggleSound" title="Ativar ou silenciar avisos sonoros de novas reservas">
+            <i class="bi bi-volume-up-fill text-primary" id="soundIcon"></i>
+            <span class="small fw-semibold d-none d-sm-inline" id="soundLabel">Som Ativo</span>
+        </button>
+
+        <form class="d-flex align-items-center gap-1 gap-sm-2 date-picker-box px-2 py-1 rounded-pill shadow-sm">
+            <button type="button" class="btn btn-sm btn-link text-decoration-none btn-date-nav"
+                    onclick="document.getElementById('dateInput').stepDown(); this.form.submit()" title="Dia anterior">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <input type="date" id="dateInput" name="date" class="form-control form-control-sm border-0 bg-transparent fw-bold text-center date-input"
+                   value="{{ current_date|date:'Y-m-d' }}"
+                   onchange="this.form.submit()"
+                   style="width: 130px;">
+
+            <button type="button" class="btn btn-sm btn-link text-decoration-none btn-date-nav"
+                    onclick="document.getElementById('dateInput').stepUp(); this.form.submit()" title="Próximo dia">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </form>
+
+        <a href="?date={% now 'Y-m-d' %}" class="btn btn-action-primary btn-sm px-3">Hoje</a>
+    </div>
+</div>
+
+<div id="liveAlertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1090; max-width: 420px; pointer-events: none;"></div>
+
+<div id="dashboard-grid-container">
+    {% include 'backoffice/dashboard/_dashboard_grid.html' %}
+</div>
+
+<h5 class="text-body-secondary fw-bold text-uppercase small mb-3 border-bottom pb-2">
+    <i class="bi bi-speedometer2 me-2"></i>Resumo do Dia
+</h5>
+
+<div class="row g-3 mb-5">
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 border-start border-4 border-success kpi-card">
+            <div class="card-body p-3">
+                <small class="text-body-secondary fw-bold text-uppercase d-block mb-2">Faturamento (Pago)</small>
+                <h3 class="fw-bold mb-0 text-body" id="kpi-revenue">R$ {{ kpis.revenue|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary kpi-card">
+            <div class="card-body p-3">
+                <small class="text-body-secondary fw-bold text-uppercase d-block mb-2">Ocupação</small>
+                <h3 class="fw-bold mb-0 text-body" id="kpi-occupancy">{{ kpis.occupancy }}%</h3>
+            </div>
+        </div>
+    </div>
+
+    {% for eq in equipment_stats %}
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 kpi-card">
+            <div class="card-body p-3">
+                <small class="text-body-secondary fw-bold text-uppercase d-block mb-1">{{ eq.name }}</small>
+                <div class="d-flex align-items-baseline">
+                    <h3 class="fw-bold mb-0 text-body">{{ eq.available }}</h3>
+                    <span class="text-body-secondary small ms-1">/ {{ eq.total }}</span>
+                </div>
+                <small class="text-success fw-bold" style="font-size: 0.7rem;">Disponíveis</small>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100 bg-body-tertiary border-dashed d-flex align-items-center justify-content-center">
+            <div class="p-3 text-center">
+                <i class="bi bi-box-seam text-body-secondary mb-1"></i>
+                <small class="d-block text-body-secondary" style="font-size: 0.7rem;">Sem estoque cadastrado</small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Áudio Synthesizer com Web Audio API (Zero dependências externas, som nativo)
+    let audioCtx = null;
+    let soundEnabled = localStorage.getItem('arena_dashboard_sound') !== 'false'; // Padrão: ativado
+
+    const btnToggleSound = document.getElementById('btnToggleSound');
+    const soundIcon = document.getElementById('soundIcon');
+    const soundLabel = document.getElementById('soundLabel');
+
+    function updateSoundUI() {
+        if (!btnToggleSound) return;
+        if (soundEnabled) {
+            if (soundIcon) soundIcon.className = 'bi bi-volume-up-fill text-success';
+            if (soundLabel) soundLabel.innerText = 'Som Ativo';
+            btnToggleSound.classList.remove('btn-outline-danger');
+            btnToggleSound.classList.add('btn-outline-secondary');
+        } else {
+            if (soundIcon) soundIcon.className = 'bi bi-volume-mute-fill text-danger';
+            if (soundLabel) soundLabel.innerText = 'Silencioso';
+            btnToggleSound.classList.remove('btn-outline-secondary');
+            btnToggleSound.classList.add('btn-outline-danger');
+        }
+    }
+    updateSoundUI();
+
+    function initAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                audioCtx = new AudioContext();
+            }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // Inicializa contexto de áudio na primeira interação do usuário na página
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+        document.addEventListener(evt, initAudioContext, { once: true });
+    });
+
+    if (btnToggleSound) {
+        btnToggleSound.addEventListener('click', function(e) {
+            e.preventDefault();
+            initAudioContext();
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('arena_dashboard_sound', soundEnabled);
+            updateSoundUI();
+            if (soundEnabled) {
+                playWarningSound(); // Feedback auditivo de teste
+            }
+        });
+    }
+
+    // Som de alerta marcante para reserva NÃO PAGA (Atenção imediata ao dono)
+    function playWarningSound() {
+        if (!soundEnabled) return;
+        try {
+            initAudioContext();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            // Bipe de alerta 1 (587Hz)
+            const osc1 = audioCtx.createOscillator();
+            const gain1 = audioCtx.createGain();
+            osc1.type = 'triangle';
+            osc1.frequency.setValueAtTime(587.33, now);
+            gain1.gain.setValueAtTime(0.2, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.18);
+
+            // Bipe de alerta 2 (880Hz - chama atenção para reserva não paga)
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(880, now + 0.22);
+            gain2.gain.setValueAtTime(0.25, now + 0.22);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.start(now + 0.22);
+            osc2.stop(now + 0.45);
+        } catch (err) {
+            console.warn('Erro ao tocar som de aviso:', err);
+        }
+    }
+
+    // Som alegre de confirmação para reserva PAGA (Arpeggio musical ascendente)
+    function playSuccessSound() {
+        if (!soundEnabled) return;
+        try {
+            initAudioContext();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const freqs = [523.25, 659.25, 783.99, 1046.50]; // Dó, Mi, Sol, Dó agudo
+            freqs.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const start = now + (idx * 0.08);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, start);
+                gain.gain.setValueAtTime(0.18, start);
+                gain.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(start);
+                osc.stop(start + 0.25);
+            });
+        } catch (err) {
+            console.warn('Erro ao tocar som de sucesso:', err);
+        }
+    }
+
+    // 2. Notificações Visuais Flutuantes (Toasts com destaque de pagamento)
+    const alertContainer = document.getElementById('liveAlertContainer');
+    function showLiveToast(title, bodyHtml, borderClass = 'border-danger', iconClass = 'bi-exclamation-triangle-fill text-danger') {
+        if (!alertContainer) return;
+
+        const toastId = 'toast-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        const toastEl = document.createElement('div');
+        toastEl.id = toastId;
+        toastEl.className = `card shadow-lg mb-2 border-start border-4 ${borderClass} bg-body text-body`;
+        toastEl.style.pointerEvents = 'auto';
+        toastEl.style.transition = 'all 0.3s ease';
+        toastEl.innerHTML = `
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi ${iconClass} fs-5"></i>
+                        <strong class="small text-uppercase">${title}</strong>
+                    </div>
+                    <button type="button" class="btn-close btn-close-sm" style="font-size: 0.65rem;" onclick="document.getElementById('${toastId}').remove()"></button>
+                </div>
+                <div class="small mt-1">${bodyHtml}</div>
+            </div>
+        `;
+        alertContainer.prepend(toastEl);
+
+        setTimeout(() => {
+            const el = document.getElementById(toastId);
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-10px)';
+                setTimeout(() => el.remove(), 300);
+            }
+        }, 10000); // 10 segundos na tela
+    }
+
+    // 3. Mecanismo de Escuta em Tempo Real (Polling com Cache-Buster 3.5s)
+    let knownBookingsMap = new Map();
+    let lastGlobalBookingId = null;
+    let isFirstPoll = true;
+
+    // Registra as reservas já existentes na renderização inicial
+    document.querySelectorAll('[data-booking-id]').forEach(el => {
+        const id = parseInt(el.getAttribute('data-booking-id'));
+        const status = el.getAttribute('data-payment-status') || '';
+        const name = el.getAttribute('data-customer-name') || '';
+        if (id) {
+            knownBookingsMap.set(id, { payment_status: status, customer_name: name });
+        }
+    });
+
+    async function pollLiveReservas() {
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('live_check', '1');
+            url.searchParams.set('_ts', Date.now().toString());
+
+            const response = await fetch(url.toString(), {
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+            if (!data.success) return;
+
+            // Inicializa lastGlobalBookingId no primeiro ciclo
+            if (lastGlobalBookingId === null && data.latest_global) {
+                lastGlobalBookingId = data.latest_global.id;
+            }
+
+            const currentGridContainer = document.getElementById('dashboard-grid-container');
+            const currentDateStr = data.current_date;
+
+            // CASO A: Nova reserva global recebida (mesmo se for para outra data!)
+            if (data.latest_global && lastGlobalBookingId && data.latest_global.id > lastGlobalBookingId) {
+                const b = data.latest_global;
+                lastGlobalBookingId = b.id;
+
+                // Se foi agendada para outro dia (diferente da data visível)
+                if (b.date_str !== currentDateStr) {
+                    if (b.is_paid) {
+                        playSuccessSound();
+                        showLiveToast(
+                            'Nova Reserva Confirmada (Outro Dia)',
+                            `<div><strong>${b.customer_name}</strong> reservou a <strong>${b.court_name}</strong></div>
+                             <div class="text-body-secondary mt-1"><i class="bi bi-calendar3 me-1"></i>${b.date_display} às ${b.time_display}</div>
+                             <div class="mt-2 d-flex align-items-center justify-content-between">
+                                 <span class="badge bg-success">PAGO (R$ ${b.amount_paid.toFixed(2).replace('.', ',')})</span>
+                                 <a href="?date=${b.date_str}" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">Ver Dia</a>
+                             </div>`,
+                            'border-success',
+                            'bi-check-circle-fill text-success'
+                        );
+                    } else {
+                        playWarningSound();
+                        const tagStatus = b.status === 'CONFIRMED' ? 'Pagar na Arena' : 'Aguardando PIX';
+                        showLiveToast(
+                            'Nova Reserva - NÃO PAGA! (Outro Dia)',
+                            `<div><strong>${b.customer_name}</strong> reservou a <strong>${b.court_name}</strong></div>
+                             <div class="text-body-secondary mt-1"><i class="bi bi-calendar3 me-1"></i>${b.date_display} às ${b.time_display}</div>
+                             <div class="mt-2 d-flex align-items-center justify-content-between">
+                                 <span class="badge bg-danger pulse-unpaid-badge">⚠️ NÃO PAGO (R$ ${b.price.toFixed(2).replace('.', ',')})</span>
+                                 <a href="?date=${b.date_str}" class="btn btn-xs btn-outline-danger py-0 px-2" style="font-size: 0.75rem;">Ver Dia</a>
+                             </div>
+                             <div class="small text-danger fw-bold mt-1"><i class="bi bi-info-circle me-1"></i>${tagStatus}</div>`,
+                            'border-danger',
+                            'bi-exclamation-triangle-fill text-danger'
+                        );
+                    }
+                }
+            } else if (data.latest_global && !lastGlobalBookingId) {
+                lastGlobalBookingId = data.latest_global.id;
+            }
+
+            // CASO B: Reservas do dia exibido na tela
+            let hasGridChanges = false;
+            let newlyArrivedBookings = [];
+            let paymentStatusChangedBookings = [];
+
+            const currentBookings = data.bookings || [];
+            const newMap = new Map();
+
+            currentBookings.forEach(b => {
+                newMap.set(b.id, {
+                    payment_status: b.payment_status,
+                    customer_name: b.customer_name,
+                    price: b.price,
+                    amount_paid: b.amount_paid,
+                    court_name: b.court_name,
+                    time: b.time,
+                    is_paid: b.is_paid,
+                    status: b.status
+                });
+
+                if (!isFirstPoll) {
+                    if (!knownBookingsMap.has(b.id)) {
+                        newlyArrivedBookings.push(b);
+                        hasGridChanges = true;
+                    } else {
+                        const old = knownBookingsMap.get(b.id);
+                        if (old.payment_status !== b.payment_status) {
+                            paymentStatusChangedBookings.push(b);
+                            hasGridChanges = true;
+                        }
+                    }
+                }
+            });
+
+            if (!isFirstPoll && knownBookingsMap.size !== newMap.size) {
+                hasGridChanges = true;
+            }
+
+            // Atualiza a tabela na tela sem recarregar e sem piscar
+            if (hasGridChanges && currentGridContainer && data.grid_html) {
+                currentGridContainer.innerHTML = data.grid_html;
+
+                // Atualiza os indicadores de KPI no rodapé
+                if (data.kpis) {
+                    const elRev = document.getElementById('kpi-revenue');
+                    const elOcc = document.getElementById('kpi-occupancy');
+                    if (elRev && data.kpis.revenue !== undefined) {
+                        elRev.innerText = 'R$ ' + Number(data.kpis.revenue).toFixed(2).replace('.', ',');
+                    }
+                    if (elOcc && data.kpis.occupancy !== undefined) {
+                        elOcc.innerText = data.kpis.occupancy + '%';
+                    }
+                }
+
+                // Dispara alertas para as novas reservas do dia
+                newlyArrivedBookings.forEach(b => {
+                    const card = document.getElementById(`booking-card-${b.id}`);
+                    if (card) {
+                        card.classList.add('pulse-new-booking');
+                    }
+
+                    if (b.is_paid) {
+                        playSuccessSound();
+                        showLiveToast(
+                            'Nova Reserva Paga!',
+                            `<div><strong>${b.customer_name}</strong> reservou <strong>${b.court_name}</strong> às <strong>${b.time}</strong></div>
+                             <div class="mt-2"><span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>PAGO (R$ ${b.amount_paid.toFixed(2).replace('.', ',')})</span></div>`,
+                            'border-success',
+                            'bi-check-circle-fill text-success'
+                        );
+                    } else {
+                        playWarningSound();
+                        const tagStatus = b.status === 'CONFIRMED' ? 'Pagar na Arena' : 'Aguardando PIX';
+                        showLiveToast(
+                            'Nova Reserva - NÃO PAGA!',
+                            `<div><strong>${b.customer_name}</strong> reservou <strong>${b.court_name}</strong> às <strong>${b.time}</strong></div>
+                             <div class="mt-2"><span class="badge bg-danger pulse-unpaid-badge"><i class="bi bi-exclamation-triangle-fill me-1"></i>NÃO PAGO (R$ ${b.price.toFixed(2).replace('.', ',')})</span></div>
+                             <div class="small text-danger fw-bold mt-1"><i class="bi bi-info-circle me-1"></i>${tagStatus}</div>`,
+                            'border-danger',
+                            'bi-exclamation-triangle-fill text-danger'
+                        );
+                    }
+                });
+
+                // Dispara alerta se uma reserva existente acabou de ser paga
+                paymentStatusChangedBookings.forEach(b => {
+                    if (b.is_paid) {
+                        playSuccessSound();
+                        showLiveToast(
+                            'Pagamento Compensado!',
+                            `<div>A reserva de <strong>${b.customer_name}</strong> (${b.court_name} às ${b.time}) foi confirmada como <strong>PAGA</strong>!</div>
+                             <div class="mt-2"><span class="badge bg-success">PAGO (R$ ${b.amount_paid.toFixed(2).replace('.', ',')})</span></div>`,
+                            'border-success',
+                            'bi-check-circle-fill text-success'
+                        );
+                    }
+                });
+            }
+
+            knownBookingsMap = newMap;
+            isFirstPoll = false;
+
+            // Micro-pulsação discreta no badge "ESCUTA ATIVA" informando batimento do poller
+            const realtimeBadge = document.getElementById('realtimeBadge');
+            if (realtimeBadge) {
+                realtimeBadge.classList.add('opacity-75');
+                setTimeout(() => realtimeBadge.classList.remove('opacity-75'), 400);
+            }
+
+        } catch (err) {
+            console.error("Erro na escuta de reservas ao vivo:", err);
+        }
+    }
+
+    // Inicia a escuta a cada 3.5 segundos (sem recarregar página e sem piscar)
+    setInterval(pollLiveReservas, 3500);
+    // Executa primeira checagem após 1.2 segundos
+    setTimeout(pollLiveReservas, 1200);
+});
+</script>
+
+<style>
+    /* Table & Cards */
+    .dashboard-table-card {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        border-radius: var(--card-radius);
+    }
+    
+    [data-bs-theme="dark"] .dashboard-table-card {
+        background-color: #14171d !important;
+        border-color: #2c323e !important;
+    }
+    
+    /* Table grid line contrast */
+    [data-bs-theme="dark"] .table-bordered > :not(caption) > * {
+        border-color: #252b36 !important;
+    }
+    [data-bs-theme="dark"] .table-bordered > :not(caption) > * > * {
+        border-color: #252b36 !important;
+    }
+
+    .dashboard-table-card table {
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
+    }
+    
+    .dashboard-table-card td.p-0 {
+        padding: 0 !important;
+        vertical-align: middle;
+        height: 1px; /* TRICK: Forces height:100% on child elements to work in td */
+    }
+
+    .time-header {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 800;
+        border-color: var(--bs-border-color);
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+    [data-bs-theme="dark"] .time-header {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+
+    .court-header {
+        background-color: var(--bs-card-bg);
+        color: var(--bs-body-color);
+        border-color: var(--bs-border-color);
+    }
+    [data-bs-theme="dark"] .court-header {
+        background-color: #181c24 !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+    .court-header span {
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+    [data-bs-theme="dark"] .court-header span {
+        color: #ffffff !important;
+    }
+
+    .time-cell {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-secondary-color);
+        font-size: 0.85rem;
+        font-weight: 700;
+        border-color: var(--bs-border-color);
+        letter-spacing: 0.5px;
+    }
+    [data-bs-theme="dark"] .time-cell {
+        background-color: #181c24 !important;
+        color: #e2e8f0 !important;
+        border-right: 2px solid #333a48 !important;
+    }
+
+    /* Past Slots: clean, discreet, with subtle contrast */
+    .slot-past {
+        background-color: rgba(0, 0, 0, 0.02);
+        color: #64748b;
+        border-color: var(--bs-border-color);
+    }
+    [data-bs-theme="dark"] .slot-past {
+        background-color: rgba(255, 255, 255, 0.015);
+        color: #475569;
+    }
+    .slot-past i {
+        font-size: 1.1rem;
+        opacity: 0.7;
+    }
+
+    /* Available cell and unified immediate hover effect */
+    .link-plus {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        min-height: 52px;
+        text-decoration: none !important;
+        color: rgba(255, 255, 255, 0.35);
+        background-color: transparent;
+        transition: background-color 0.12s ease, color 0.12s ease;
+    }
+    [data-bs-theme="light"] .link-plus {
+        color: rgba(0, 0, 0, 0.25);
+    }
+    .link-plus i {
+        font-size: 1.15rem;
+        transition: transform 0.12s ease;
+    }
+
+    /* Hover imediato e unificado - sem conflitos e sem piscar */
+    .link-plus:hover {
+        background-color: rgba(25, 135, 84, 0.14) !important;
+        color: #198754 !important;
+        cursor: pointer;
+    }
+    .link-plus:hover i {
+        transform: scale(1.35);
+    }
+
+    [data-bs-theme="dark"] .link-plus:hover {
+        background-color: rgba(34, 197, 94, 0.18) !important;
+        color: #22c55e !important;
+    }
+
+    /* Booking cards and texts */
+    .booking-card {
+        border-radius: 0px !important;
+        margin: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column;
+        justify-content: center;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .booking-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        filter: brightness(1.08);
+        z-index: 10;
+        position: relative;
+    }
+    .booking-customer-name {
+        color: var(--bs-body-color);
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+    [data-bs-theme="dark"] .booking-customer-name {
+        color: #ffffff !important;
+    }
+
+    .slot-lesson-name {
+        color: var(--bs-body-color);
+        font-weight: 700;
+    }
+    [data-bs-theme="dark"] .slot-lesson-name {
+        color: #ffffff !important;
+    }
+
+    .booking-paid {
+        background-color: rgba(25, 135, 84, 0.15);
+        border-left: 5px solid #198754 !important;
+    }
+    .booking-partial {
+        background-color: rgba(255, 193, 7, 0.16);
+        border-left: 5px solid #ffc107 !important;
+    }
+    .booking-pending, .booking-unpaid {
+        background-color: rgba(220, 53, 69, 0.12);
+        border-left: 5px solid #dc3545 !important;
+    }
+    .slot-lesson, .booking-lesson {
+        background-color: rgba(13, 202, 240, 0.15);
+        border-left: 5px solid #0dcaf0 !important;
+    }
+
+    [data-bs-theme="dark"] .booking-paid {
+        background-color: rgba(34, 197, 94, 0.24) !important;
+        border-left: 5px solid #22c55e !important;
+    }
+    [data-bs-theme="dark"] .booking-partial {
+        background-color: rgba(245, 158, 11, 0.24) !important;
+        border-left: 5px solid #f59e0b !important;
+    }
+    [data-bs-theme="dark"] .booking-pending, [data-bs-theme="dark"] .booking-unpaid {
+        background-color: rgba(239, 68, 68, 0.2) !important;
+        border-left: 5px solid #ef4444 !important;
+    }
+    [data-bs-theme="dark"] .slot-lesson, [data-bs-theme="dark"] .booking-lesson {
+        background-color: rgba(14, 165, 233, 0.24) !important;
+        border-left: 5px solid #0ea5e9 !important;
+    }
+
+    /* Pulse animation for unpaid badge */
+    @keyframes pulseUnpaid {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+        50% { transform: scale(1.02); box-shadow: 0 0 0 4px rgba(220, 53, 69, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+    .pulse-unpaid-badge {
+        animation: pulseUnpaid 2s infinite ease-in-out;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+
+    /* Flash highlight when new booking arrives */
+    @keyframes highlightNewArrival {
+        0% { transform: scale(1.03); outline: 3px solid #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6); }
+        100% { transform: scale(1); outline: 3px solid transparent; }
+    }
+    .pulse-new-booking {
+        animation: highlightNewArrival 3s ease-out;
+    }
+
+    /* Date Picker */
+    .date-picker-box {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    }
+    [data-bs-theme="dark"] .date-picker-box {
+        background-color: #1a1e27 !important;
+        border-color: #333a48 !important;
+    }
+    .date-picker-box input[type="date"] {
+        color: var(--bs-body-color);
+        font-weight: 700;
+    }
+    [data-bs-theme="dark"] .date-picker-box input[type="date"] {
+        color: #ffffff !important;
+    }
+    .btn-date-nav {
+        color: var(--bs-body-color);
+        padding: 2px 10px;
+        transition: all 0.15s ease;
+    }
+    [data-bs-theme="dark"] .btn-date-nav {
+        color: #cbd5e1 !important;
+    }
+    .btn-date-nav:hover {
+        color: #111315 !important;
+        transform: scale(1.25);
+    }
+    [data-bs-theme="dark"] .btn-date-nav:hover {
+        color: var(--brand-color) !important;
+    }
+
+    /* KPI Cards */
+    .kpi-card {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        border-radius: 12px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+    }
+    [data-bs-theme="dark"] .kpi-card {
+        background-color: #171a22 !important;
+        border-color: #2d3340 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
+    }
+    [data-bs-theme="dark"] .kpi-card:hover {
+        border-color: #475569 !important;
+    }
+    [data-bs-theme="dark"] .kpi-card h3 {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .kpi-card small.text-body-secondary {
+        color: #94a3b8 !important;
+        font-weight: 700;
+    }
+
+    .border-dashed { border-style: dashed !important; }
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none !important;
+    }
+    .hide-scrollbar {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
+    }
+</style>
+
+{% endblock %}

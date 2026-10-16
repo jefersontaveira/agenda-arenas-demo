@@ -1,0 +1,226 @@
+{% extends 'saas/base_saas.html' %}
+
+{% block title %}{{ arena.name }} | Logística da Arena{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4">
+
+    <!-- Back and Breadcrumb -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="{% url 'saas:dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> Voltar ao Dashboard
+        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'saas:arena_edit' arena.pk %}" class="btn btn-warning btn-sm rounded-pill text-dark fw-bold px-3">
+                <i class="bi bi-pencil-square me-1"></i> Editar Dados / Plano
+            </a>
+            <a href="{% url 'saas:arena_toggle_active' arena.pk %}" class="btn {% if arena.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-sm rounded-pill" onclick="return confirm('Deseja realmente alternar o status desta arena?');">
+                {% if arena.is_active %}
+                <i class="bi bi-lock me-1"></i> Bloquear Acesso
+                {% else %}
+                <i class="bi bi-unlock me-1"></i> Reativar Acesso
+                {% endif %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Arena Header Card -->
+    <div class="glass-card p-4 mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col-12 col-md-8">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-4 p-3 d-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning" style="width: 60px; height: 60px;">
+                        <i class="bi bi-building fs-3"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h1 class="h3 fw-bold text-white mb-0">{{ arena.name }}</h1>
+                            {% if arena.is_active %}
+                            <span class="badge badge-success-subtle">ATIVA</span>
+                            {% else %}
+                            <span class="badge badge-danger-subtle">BLOQUEADA</span>
+                            {% endif %}
+                            {% if arena.is_connected_to_asaas %}
+                            <span class="badge badge-info-subtle" title="Subconta Asaas configurada"><i class="bi bi-credit-card me-1"></i>Asaas Conectado</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-secondary small mt-1">
+                            URL do Sistema: <a href="/app/{{ arena.slug }}/" target="_blank" class="text-warning text-decoration-none">/app/{{ arena.slug }}/ <i class="bi bi-box-arrow-up-right small"></i></a>
+                            &nbsp;|&nbsp; Painel Gestão: <a href="/gestao/{{ arena.slug }}/" target="_blank" class="text-secondary text-decoration-none">/gestao/{{ arena.slug }}/ <i class="bi bi-box-arrow-up-right small"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4 text-md-end">
+                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); display: inline-block;">
+                    <div class="small text-secondary text-uppercase fw-bold">Mensalidade SaaS</div>
+                    <div class="fs-4 fw-bold text-warning">R$ {{ arena.monthly_fee|floatformat:2 }} <span class="fs-6 text-secondary fw-normal">/ mês</span></div>
+                    <div class="small text-secondary">Vencimento todo dia {{ arena.due_day|default:10 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="border-secondary border-opacity-25 my-4">
+
+        <!-- Contacts and Fiscal Details -->
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-3">
+                <span class="small text-secondary d-block">Proprietário</span>
+                <strong class="text-white">{{ arena.owner_name|default:"Não informado" }}</strong>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <span class="small text-secondary d-block">WhatsApp / Telefone</span>
+                <div class="d-flex align-items-center gap-2">
+                    <strong class="text-white">{{ arena.owner_phone|default:"Não informado" }}</strong>
+                    {% if arena.whatsapp_link %}
+                    <a href="{{ arena.whatsapp_link }}" target="_blank" class="btn-whatsapp py-1 px-2" style="font-size: 0.75rem;">
+                        <i class="bi bi-whatsapp"></i> Conversar
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <span class="small text-secondary d-block">E-mail do Proprietário</span>
+                <strong class="text-white">{{ arena.owner_email|default:"Não informado" }}</strong>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <span class="small text-secondary d-block">CNPJ</span>
+                <strong class="text-white">{{ arena.cnpj|default:"Não informado" }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Row -->
+    <div class="row g-3 mb-4">
+        <!-- Total de Reservas -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card kpi-card">
+                <span class="kpi-lbl">Total de Reservas</span>
+                <div class="kpi-val text-white mt-1">{{ total_bookings }}</div>
+                <div class="small text-secondary mt-2">Volume histórico na arena</div>
+            </div>
+        </div>
+
+        <!-- Reservas Online (Site) -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card kpi-card" style="--kpi-glow: rgba(59, 130, 246, 0.2);">
+                <span class="kpi-lbl">Feitas Online (Pelo Site)</span>
+                <div class="kpi-val text-info mt-1">{{ online_bookings }} <span class="fs-6 text-secondary">({{ online_percent }}%)</span></div>
+                <div class="small text-secondary mt-2">Agendadas pelos próprios atletas</div>
+            </div>
+        </div>
+
+        <!-- Reservas Balcão -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card kpi-card">
+                <span class="kpi-lbl">Feitas no Balcão</span>
+                <div class="kpi-val text-white mt-1">{{ backoffice_bookings }}</div>
+                <div class="small text-secondary mt-2">Lançadas na recepção</div>
+            </div>
+        </div>
+
+        <!-- Volume Financeiro Movimentado -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card kpi-card" style="--kpi-glow: rgba(16, 185, 129, 0.2);">
+                <span class="kpi-lbl">Volume Movimentado</span>
+                <div class="kpi-val text-success mt-1">R$ {{ total_booking_volume|floatformat:2 }}</div>
+                <div class="small text-secondary mt-2">Total de reservas confirmadas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Grid: Subscriptions History & Courts -->
+    <div class="row g-4">
+        <!-- Subscriptions History -->
+        <div class="col-12 col-lg-8">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2 class="h5 fw-bold text-white mb-0">Histórico de Mensalidades do SaaS</h2>
+                        <small class="text-secondary">Controle de faturas, cobranças e pagamentos recebidos</small>
+                    </div>
+                    <a href="{% url 'saas:subscription_create' %}?arena={{ arena.pk }}" class="btn btn-outline-warning btn-sm rounded-pill">
+                        <i class="bi bi-plus-lg me-1"></i> Criar Fatura
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom mb-0">
+                        <thead>
+                            <tr>
+                                <th>Vencimento</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Data Pagamento</th>
+                                <th>Observações</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub in subscriptions %}
+                            <tr>
+                                <td class="fw-bold text-white">{{ sub.due_date|date:"d/m/Y" }}</td>
+                                <td class="fw-bold text-warning">R$ {{ sub.amount|floatformat:2 }}</td>
+                                <td>
+                                    {% if sub.status == 'PAID' %}
+                                    <span class="badge badge-success-subtle">PAGO</span>
+                                    {% elif sub.status == 'OVERDUE' %}
+                                    <span class="badge badge-danger-subtle">ATRASADO</span>
+                                    {% else %}
+                                    <span class="badge badge-warning-subtle">PENDENTE</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ sub.payment_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td class="small text-secondary">{{ sub.notes|default:"-" }}</td>
+                                <td class="text-end">
+                                    {% if sub.status != 'PAID' %}
+                                    <a href="{% url 'saas:subscription_mark_paid' sub.pk %}" class="btn btn-sm btn-success py-0 px-2 fw-bold text-dark" title="Registrar Pagamento">
+                                        <i class="bi bi-check-lg"></i> Pagar
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'saas:subscription_edit' sub.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-2">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-secondary">
+                                    Nenhuma mensalidade registrada para esta arena.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Courts & Operating Info -->
+        <div class="col-12 col-lg-4">
+            <div class="glass-card p-4 h-100">
+                <h3 class="h6 fw-bold text-white mb-3">Quadras Cadastradas ({{ courts.count }})</h3>
+                <div class="d-flex flex-column gap-2 mb-4">
+                    {% for court in courts %}
+                    <div class="p-2 px-3 rounded-3 d-flex justify-content-between align-items-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+                        <div>
+                            <span class="fw-bold text-light small d-block">{{ court.name }}</span>
+                            <small class="text-secondary">{{ court.modality.name|default:"Sem modalidade" }}</small>
+                        </div>
+                        <span class="badge bg-secondary bg-opacity-25 text-light small">
+                            {{ court.bookings.count }} reservas
+                        </span>
+                    </div>
+                    {% empty %}
+                    <div class="text-secondary small">Nenhuma quadra cadastrada.</div>
+                    {% endfor %}
+                </div>
+
+                <h3 class="h6 fw-bold text-white mb-2">Base de Clientes</h3>
+                <p class="text-secondary small mb-0">Total de clientes cadastrados: <strong class="text-white">{{ customers_count }}</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

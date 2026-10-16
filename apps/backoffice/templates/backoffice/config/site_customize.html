@@ -1,0 +1,893 @@
+{% extends "backoffice/base_dashboard.html" %}
+{% load static %}
+
+{% block content %}
+<div class="site-customize-container pb-5">
+
+    <!-- CABEÇALHO DA PÁGINA -->
+    <div class="row align-items-center pt-3 pb-3 mb-4 border-bottom g-3 text-center text-md-start">
+        <div class="col-12 col-md-auto flex-grow-1">
+            <div class="d-flex justify-content-center justify-content-md-start align-items-center gap-2 mb-2 flex-wrap">
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold">
+                    <i class="bi bi-palette-fill me-1"></i> Identidade Visual
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill fw-bold">
+                    <i class="bi bi-link-45deg me-1"></i> Site Vinculado
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill fw-bold d-none" id="unsavedBadge">
+                    <i class="bi bi-dot"></i> Alterações não salvas
+                </span>
+            </div>
+            <h1 class="h2 fw-bold mb-1 text-body">Personalizar Site de Reservas</h1>
+            <p class="text-body-secondary small mb-0">
+                Personalize as cores, logomarca, imagem de capa, contatos e os dias/horários de funcionamento. Acompanhe as mudanças na maquete ao vivo!
+            </p>
+        </div>
+
+        <div class="col-12 col-md-auto d-flex align-items-center justify-content-center justify-content-md-end gap-2 flex-wrap">
+            <a href="{{ public_url }}" target="_blank" class="btn btn-outline-primary px-3 py-2 fw-semibold rounded-pill shadow-sm flex-fill flex-md-grow-0 text-center">
+                <i class="bi bi-box-arrow-up-right me-1"></i> Ver Site ao Vivo
+            </a>
+            <button type="button" class="btn btn-primary px-4 py-2 fw-bold rounded-pill shadow-sm flex-fill flex-md-grow-0" onclick="submitSiteForm()">
+                <i class="bi bi-check-lg me-1"></i> Salvar Alterações
+            </button>
+        </div>
+    </div>
+
+    <!-- BANNER DE LINK E COMPARTILHAMENTO -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden bg-primary bg-opacity-10 border border-primary border-opacity-25">
+        <div class="card-body p-4">
+            <div class="row align-items-center justify-content-between g-3 text-center text-md-start">
+                <div class="col-12 col-md-auto flex-grow-1" style="min-width: 0;">
+                    <div class="small fw-bold text-primary text-uppercase mb-1">
+                        <i class="bi bi-globe2 me-1"></i> Link Oficial de Reservas da sua Arena
+                    </div>
+                    <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 flex-wrap">
+                        <code class="fs-6 fw-bold px-3 py-2 rounded-3 bg-body text-body shadow-sm border border-secondary border-opacity-25 user-select-all text-break d-block w-100 w-md-auto" id="publicUrlText" style="word-break: break-all;">
+                            {{ public_url }}
+                        </code>
+                    </div>
+                    <small class="text-body-secondary d-block mt-2">
+                        Compartilhe este link no Instagram, WhatsApp ou com seus clientes para que eles agendem diretamente na sua arena.
+                    </small>
+                </div>
+
+                <div class="col-12 col-md-auto d-flex gap-2 justify-content-center justify-content-md-end flex-shrink-0">
+                    <button type="button" class="btn btn-primary px-4 py-2 rounded-pill fw-bold shadow-sm flex-fill flex-md-grow-0" onclick="copyPublicLink()">
+                        <i class="bi bi-clipboard me-1" id="copyIcon"></i> <span id="copyText">Copiar Link</span>
+                    </button>
+                    <a href="{{ public_url }}" target="_blank" class="btn btn-outline-primary px-3 py-2 rounded-pill fw-bold">
+                        <i class="bi bi-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALERTA DE PRE-VISUALIZACAO PARA MOBILE -->
+    <div class="alert alert-info border-0 shadow-sm rounded-4 mb-4 d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 d-xl-none text-center text-sm-start">
+        <div>
+            <i class="bi bi-eye-fill me-2 fs-5 text-info"></i>
+            <span class="fw-semibold text-info-emphasis">A pré-visualização do site está no final da página!</span>
+        </div>
+        <a href="#previewMockupCard" class="btn btn-sm btn-info text-white rounded-pill fw-bold px-4 py-2 w-100 w-sm-auto shadow-sm">Ver Agora</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="siteCustomizeForm">
+        {% csrf_token %}
+
+        <div class="row g-4">
+            <!-- COLUNA ESQUERDA: FORMULÁRIO DE CUSTOMIZAÇÃO -->
+            <div class="col-12 col-xl-7">
+
+                <!-- NAVEGAÇÃO DE ABAS -->
+                <ul class="nav nav-pills nav-fill flex-column flex-sm-row mb-4 p-1 bg-body-tertiary rounded-4 shadow-sm border border-secondary border-opacity-10 gap-1" id="customTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active rounded-pill fw-bold py-2 w-100" id="tab-visual-btn" data-bs-toggle="pill" data-bs-target="#tab-visual" type="button" role="tab">
+                            <i class="bi bi-palette me-1"></i> Cores & Logo
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-pill fw-bold py-2 w-100" id="tab-banner-btn" data-bs-toggle="pill" data-bs-target="#tab-banner" type="button" role="tab">
+                            <i class="bi bi-image me-1"></i> Banner & Textos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-pill fw-bold py-2 w-100" id="tab-hours-btn" data-bs-toggle="pill" data-bs-target="#tab-hours" type="button" role="tab">
+                            <i class="bi bi-clock-history me-1"></i> Horários & Dias
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-pill fw-bold py-2 w-100" id="tab-contact-btn" data-bs-toggle="pill" data-bs-target="#tab-contact" type="button" role="tab">
+                            <i class="bi bi-telephone me-1"></i> Contato & Info
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="customTabsContent">
+
+                    <!-- ABA 1: CORES & LOGO -->
+                    <div class="tab-pane fade show active" id="tab-visual" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 mb-4">
+                            <div class="card-header bg-transparent py-3 border-bottom">
+                                <h5 class="mb-0 fw-bold text-body"><i class="bi bi-brush me-2 text-primary"></i>Identidade Visual & Cores</h5>
+                            </div>
+                            <div class="card-body p-4">
+
+                                <!-- LOGO -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-body">Logotipo da Arena</label>
+                                    <p class="text-body-secondary small mb-2">Recomendado formato PNG transparente (até 500x200px).</p>
+                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                        <div class="logo-preview-box p-2 border rounded-3 bg-body-tertiary d-flex align-items-center justify-content-center" style="width: 140px; height: 70px;">
+                                            <img src="{% if form.instance.logo %}{{ form.instance.logo.url }}{% endif %}" id="logoPreviewImg" alt="Logo" class="{% if not form.instance.logo %}d-none{% endif %}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                            <div class="text-muted small text-center {% if form.instance.logo %}d-none{% endif %}" id="logoPlaceholder">
+                                                <i class="bi bi-image fs-4 d-block"></i> Sem logo
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            {{ form.logo }}
+                                            {% if form.logo.errors %}
+                                                <div class="text-danger small mt-1">{{ form.logo.errors }}</div>
+                                            {% endif %}
+                                            <small class="text-body-secondary d-block mt-1">Ao selecionar uma nova imagem, ela aparecerá na pré-visualização instantaneamente.</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="border-secondary border-opacity-10 my-4">
+
+                                <!-- PALETAS PRONTAS -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-body mb-2 d-block">
+                                        Paletas de Cores Prontas
+                                        <span class="badge bg-secondary bg-opacity-10 text-body-secondary ms-1 fw-normal">Clique para aplicar</span>
+                                    </label>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 d-flex align-items-center gap-2 palette-preset-btn"
+                                                onclick="applyPalette('#FFC107', '#212529')">
+                                            <span class="rounded-circle" style="width: 16px; height: 16px; background-color: #FFC107; display: inline-block;"></span>
+                                            <span class="fw-semibold">Dourado Beach</span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 d-flex align-items-center gap-2 palette-preset-btn"
+                                                onclick="applyPalette('#FF6B00', '#1E293B')">
+                                            <span class="rounded-circle" style="width: 16px; height: 16px; background-color: #FF6B00; display: inline-block;"></span>
+                                            <span class="fw-semibold">Laranja Sunset</span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 d-flex align-items-center gap-2 palette-preset-btn"
+                                                onclick="applyPalette('#10B981', '#111827')">
+                                            <span class="rounded-circle" style="width: 16px; height: 16px; background-color: #10B981; display: inline-block;"></span>
+                                            <span class="fw-semibold">Verde Quadra</span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 d-flex align-items-center gap-2 palette-preset-btn"
+                                                onclick="applyPalette('#0284C7', '#0F172A')">
+                                            <span class="rounded-circle" style="width: 16px; height: 16px; background-color: #0284C7; display: inline-block;"></span>
+                                            <span class="fw-semibold">Azul Oceano</span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 d-flex align-items-center gap-2 palette-preset-btn"
+                                                onclick="applyPalette('#8B5CF6', '#18181B')">
+                                            <span class="rounded-circle" style="width: 16px; height: 16px; background-color: #8B5CF6; display: inline-block;"></span>
+                                            <span class="fw-semibold">Roxo Neon</span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 d-flex align-items-center gap-2 palette-preset-btn"
+                                                onclick="applyPalette('#EF4444', '#1F2937')">
+                                            <span class="rounded-circle" style="width: 16px; height: 16px; background-color: #EF4444; display: inline-block;"></span>
+                                            <span class="fw-semibold">Vermelho Energia</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- SELETORES MANUAIS -->
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-bold text-body">
+                                            {{ form.primary_color.label }}
+                                            <small class="text-body-secondary fw-normal">(Botões, destaques, calendário)</small>
+                                        </label>
+                                        <div class="d-flex align-items-center gap-2">
+                                            {{ form.primary_color }}
+                                            <input type="text" class="form-control font-monospace" id="primaryColorHex" value="{{ form.instance.primary_color|default:'#FFC107' }}" maxlength="7" style="max-width: 110px;">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-bold text-body">
+                                            {{ form.secondary_color.label }}
+                                            <small class="text-body-secondary fw-normal">(Rodapé, fundo escuro, contrastes)</small>
+                                        </label>
+                                        <div class="d-flex align-items-center gap-2">
+                                            {{ form.secondary_color }}
+                                            <input type="text" class="form-control font-monospace" id="secondaryColorHex" value="{{ form.instance.secondary_color|default:'#212529' }}" maxlength="7" style="max-width: 110px;">
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ABA 2: BANNER & TEXTOS -->
+                    <div class="tab-pane fade" id="tab-banner" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 mb-4">
+                            <div class="card-header bg-transparent py-3 border-bottom">
+                                <h5 class="mb-0 fw-bold text-body"><i class="bi bi-image me-2 text-primary"></i>Banner de Destaque & Textos</h5>
+                            </div>
+                            <div class="card-body p-4">
+
+                                <!-- BANNER IMAGE -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-body">{{ form.hero_image.label }}</label>
+                                    <p class="text-body-secondary small mb-2">Foto da sua arena para o banner principal (JPG ou PNG, recomendada 1920x600px).</p>
+                                    
+                                    <div class="mb-3">
+                                        <div class="position-relative rounded-4 overflow-hidden border shadow-sm" style="height: 160px; background-color: #111;">
+                                            <img src="{% if form.instance.hero_image %}{{ form.instance.hero_image.url }}{% else %}https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=1000&auto=format&fit=crop{% endif %}" id="bannerPreviewImg" class="w-100 h-100 object-fit-cover" alt="Banner da Arena">
+                                            <div class="position-absolute bottom-0 start-0 w-100 p-2 bg-dark bg-opacity-75 text-white small" id="bannerBadgeText">
+                                                {% if form.instance.hero_image %}Banner Atual Cadastrado{% else %}Imagem Padrão do Sistema{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{ form.hero_image }}
+                                </div>
+
+                                <hr class="border-secondary border-opacity-10 my-4">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-body">{{ form.hero_title.label }}</label>
+                                    {{ form.hero_title }}
+                                    <div class="form-text text-body-secondary">Ex: "Agende já sua quadra" ou "Reserve seu horário na {{ arena.name }}"</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-body">{{ form.hero_subtitle.label }}</label>
+                                    {{ form.hero_subtitle }}
+                                    <div class="form-text text-body-secondary">Ex: "Escolha sua modalidade e garanta seu horário online."</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-body">{{ form.about_text.label }}</label>
+                                    {{ form.about_text }}
+                                    <div class="form-text text-body-secondary">Texto informativo exibido na seção Sobre / Rodapé do site.</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ABA 3: HORÁRIOS & DIAS DE FUNCIONAMENTO -->
+                    <div class="tab-pane fade" id="tab-hours" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 mb-4">
+                            <div class="card-header bg-transparent py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <h5 class="mb-0 fw-bold text-body"><i class="bi bi-clock-history me-2 text-primary"></i>Horários & Dias Abertos</h5>
+                                    <small class="text-body-secondary">As alterações feitas aqui atualizam a tabela na pré-visualização ao lado em tempo real!</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill fw-semibold" onclick="replicateMondayHours()">
+                                    <i class="bi bi-copy me-1"></i> Replicar Seg p/ Semana Toda
+                                </button>
+                            </div>
+                            <div class="card-body p-4">
+
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0" style="min-width: 450px;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 30%;">Dia da Semana</th>
+                                                <th style="width: 25%;">Status</th>
+                                                <th style="width: 22%;">Abertura</th>
+                                                <th style="width: 23%;">Fechamento</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for hour in opening_hours %}
+                                            <tr id="row-day-{{ hour.weekday }}">
+                                                <td>
+                                                    <span class="fw-bold text-body">{{ hour.get_weekday_display }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input day-toggle-switch" type="checkbox" role="switch"
+                                                               id="day_{{ hour.weekday }}_closed"
+                                                               name="day_{{ hour.weekday }}_closed"
+                                                               {% if hour.is_closed %}checked{% endif %}
+                                                               onchange="toggleDayStatus({{ hour.weekday }})">
+                                                        <label class="form-check-label small fw-semibold {% if hour.is_closed %}text-danger{% else %}text-success{% endif %}" for="day_{{ hour.weekday }}_closed" id="label_day_{{ hour.weekday }}">
+                                                            {% if hour.is_closed %}Fechado{% else %}Aberto{% endif %}
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <input type="time" class="form-control form-control-sm hour-input"
+                                                           id="day_{{ hour.weekday }}_open_time"
+                                                           name="day_{{ hour.weekday }}_open_time"
+                                                           value="{{ hour.open_time|time:'H:i'|default:'07:00' }}"
+                                                           {% if hour.is_closed %}disabled{% endif %}
+                                                           oninput="updateMockSchedule()">
+                                                </td>
+                                                <td>
+                                                    <input type="time" class="form-control form-control-sm hour-input"
+                                                           id="day_{{ hour.weekday }}_close_time"
+                                                           name="day_{{ hour.weekday }}_close_time"
+                                                           value="{{ hour.close_time|time:'H:i'|default:'23:00' }}"
+                                                           {% if hour.is_closed %}disabled{% endif %}
+                                                           oninput="updateMockSchedule()">
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="alert alert-info border-0 rounded-3 mt-4 small mb-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
+                                    <div>
+                                        Nos dias marcados como <strong>Fechado</strong>, a página de agendamento exibirá que a arena não opera naquela data e não disponibilizará horários de reserva.
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ABA 4: CONTATO & INFO -->
+                    <div class="tab-pane fade" id="tab-contact" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 mb-4">
+                            <div class="card-header bg-transparent py-3 border-bottom">
+                                <h5 class="mb-0 fw-bold text-body"><i class="bi bi-telephone me-2 text-primary"></i>Contato & Localização</h5>
+                            </div>
+                            <div class="card-body p-4">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-body">
+                                        <i class="bi bi-whatsapp text-success me-1"></i> WhatsApp de Atendimento
+                                    </label>
+                                    {{ form.contact_phone }}
+                                    <div class="form-text text-body-secondary">Permite que os clientes entrem em contato direto pelo WhatsApp na página de reservas.</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-body">
+                                        <i class="bi bi-instagram text-danger me-1"></i> Perfil do Instagram
+                                    </label>
+                                    {{ form.instagram }}
+                                    <div class="form-text text-body-secondary">Ex: @arena_esportes</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-body">
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i> Endereço Completo da Arena
+                                    </label>
+                                    {{ form.address }}
+                                    <div class="form-text text-body-secondary">Ex: Av. das Palmeiras, 1500 - Bairro Esportivo, Cidade - UF</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- BARRA DE AÇÃO INFERIOR -->
+                <div class="row align-items-center justify-content-between gap-3 mt-4 p-3 bg-body-tertiary rounded-4 border border-secondary border-opacity-10 shadow-sm text-center text-md-start mx-0">
+                    <div class="col-12 col-md-auto flex-grow-1 small text-body-secondary">
+                        <i class="bi bi-info-circle me-1"></i> Suas alterações permanecem salvas ao alternar de aba até você clicar em Salvar.
+                    </div>
+                    <div class="col-12 col-md-auto d-flex justify-content-center justify-content-md-end p-0">
+                        <button type="button" class="btn btn-primary px-4 py-3 fw-bold rounded-pill shadow w-100 w-md-auto" onclick="submitSiteForm()">
+                            <i class="bi bi-check2-circle me-1 fs-5 align-middle"></i> Salvar Todas as Alterações
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COLUNA DIREITA: PRÉ-VISUALIZAÇÃO INTERATIVA EM TEMPO REAL -->
+            <div class="col-12 col-xl-5">
+                <div class="sticky-top" style="top: 20px; z-index: 10;">
+                    
+                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden preview-mockup-card" id="previewMockupCard"
+                         style="--preview-brand: {{ form.instance.primary_color|default:'#FFC107' }}; --preview-dark: {{ form.instance.secondary_color|default:'#212529' }};">
+                        
+                        <div class="card-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-danger" style="width: 10px; height: 10px;"></div>
+                                <div class="rounded-circle bg-warning" style="width: 10px; height: 10px;"></div>
+                                <div class="rounded-circle bg-success" style="width: 10px; height: 10px;"></div>
+                                <span class="ms-2 small opacity-75 font-monospace">Pré-visualização do Site</span>
+                            </div>
+                            <span class="badge rounded-pill px-2 py-1 small" style="background-color: var(--preview-brand); color: var(--preview-dark);">Ao Vivo</span>
+                        </div>
+
+                        <!-- MOCKUP BROWSER BODY -->
+                        <div class="preview-mockup-body bg-light position-relative" style="max-height: 600px; overflow-y: auto;">
+
+                            <!-- NAVBAR MOCK -->
+                            <div class="bg-white px-3 py-2 border-bottom d-flex align-items-center justify-content-between shadow-sm">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div id="previewLogoBox" class="d-flex align-items-center">
+                                        <!-- IMAGEM DA LOGO (mostra se existir ou upload) -->
+                                        <img src="{% if form.instance.logo %}{{ form.instance.logo.url }}{% endif %}" id="mockLogoImg" class="{% if not form.instance.logo %}d-none{% endif %}" style="height: 32px; max-width: 100px; object-fit: contain;">
+                                        
+                                        <!-- TROFÉU PADRÃO (mostra se NÃO tiver logo) -->
+                                        <div class="d-flex align-items-center {% if form.instance.logo %}d-none{% endif %}" id="mockTrophyBox">
+                                            <div class="rounded-2 p-1 text-dark d-flex align-items-center justify-content-center" id="mockTrophyIcon" style="background-color: var(--preview-brand); width: 28px; height: 28px;">
+                                                <i class="bi bi-trophy-fill small"></i>
+                                            </div>
+                                            <span class="fw-bold small ms-1 text-truncate text-dark" style="max-width: 110px;">{{ arena.name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-dark rounded-pill" style="font-size: 0.7rem; padding: 2px 8px;">
+                                        <i class="bi bi-calendar-check"></i> Reservas
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- HERO SECTION MOCK -->
+                            <div class="position-relative text-center text-white py-4 px-3 d-flex flex-column align-items-center justify-content-center"
+                                 id="mockHeroSection"
+                                 style="min-height: 180px; background-size: cover; background-position: center; {% if form.instance.hero_image %}background-image: url('{{ form.instance.hero_image.url }}');{% else %}background-image: url('https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=1000&auto=format&fit=crop');{% endif %}">
+                                
+                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-black opacity-50"></div>
+
+                                <div class="position-relative z-2">
+                                    <h5 class="fw-bold mb-1 text-white" id="mockHeroTitle">
+                                        {{ form.instance.hero_title|default:'Agende já sua quadra' }}
+                                    </h5>
+                                    <p class="small text-white-50 mb-3" id="mockHeroSubtitle" style="font-size: 0.75rem;">
+                                        {{ form.instance.hero_subtitle|default:'Escolha sua modalidade e garanta seu horário.' }}
+                                    </p>
+                                    <button type="button" class="btn rounded-pill px-3 py-1 fw-bold shadow-sm" id="mockCtaBtn"
+                                            style="font-size: 0.75rem; background-color: var(--preview-brand); color: var(--preview-dark);">
+                                        AGENDAR AGORA
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- CONTEÚDO MOCK -->
+                            <div class="p-3">
+
+                                <!-- MODALIDADES -->
+                                <div class="small fw-bold text-muted text-uppercase mb-2" style="font-size: 0.65rem;">1. Modalidade</div>
+                                <div class="d-flex flex-wrap gap-1 mb-3">
+                                    <button type="button" class="btn btn-sm rounded-pill px-2 py-1 fw-bold" id="mockModalityActive"
+                                            style="font-size: 0.7rem; background-color: var(--preview-brand); color: var(--preview-dark);">
+                                        <i class="bi bi-collection-fill"></i> Todos
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-light border rounded-pill px-2 py-1 text-muted" style="font-size: 0.7rem;">
+                                        <span class="me-1">🎾</span> Beach Tennis
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-light border rounded-pill px-2 py-1 text-muted" style="font-size: 0.7rem;">
+                                        <span class="me-1">🏐</span> Vôlei
+                                    </button>
+                                </div>
+
+                                <!-- DATA CARD -->
+                                <div class="p-2 bg-white rounded-3 shadow-sm border mb-3 d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center p-2" id="mockCalendarIconBox"
+                                         style="background-color: var(--preview-brand); color: var(--preview-dark); width: 32px; height: 32px;">
+                                        <i class="bi bi-calendar-week-fill small"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="text-muted" style="font-size: 0.6rem; text-transform: uppercase;">Data Selecionada</div>
+                                        <strong class="small text-dark">Hoje</strong>
+                                    </div>
+                                </div>
+
+                                <!-- SLOT MOCK -->
+                                <div class="small fw-bold text-muted text-uppercase mb-2" style="font-size: 0.65rem;">Horários Disponíveis</div>
+                                <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">
+                                    <div class="card-body p-2 p-md-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                                        <div class="d-flex align-items-center gap-2 flex-grow-1">
+                                            <strong class="text-dark fs-5">18:00</strong>
+                                            <span class="badge bg-light text-dark border rounded-pill ms-auto ms-sm-0" style="font-size: 0.65rem;">2 quadras</span>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-3 flex-grow-1 flex-sm-grow-0 justify-content-between justify-content-sm-end">
+                                            <div class="text-end d-block">
+                                                <div class="text-muted text-uppercase fw-bold" style="font-size: 0.55rem; letter-spacing: 0.5px;">A partir de</div>
+                                                <div class="fw-bold text-dark mb-0" style="font-size: 0.8rem;">R$ 60,00</div>
+                                            </div>
+
+                                            <button type="button" class="btn btn-sm rounded-pill px-3 py-1 fw-bold flex-grow-1 flex-sm-grow-0" id="mockSlotBtn"
+                                                    style="font-size: 0.75rem; background-color: var(--preview-brand); color: var(--preview-dark); min-width: 100px;">
+                                                Reservar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- HORÁRIOS MOCK (ATUALIZA EM TEMPO REAL) -->
+                                <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white overflow-hidden">
+                                    <div class="card-header bg-transparent py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                        <span class="small fw-bold text-dark text-uppercase" style="font-size: 0.65rem;">
+                                            <i class="bi bi-clock-history me-1" id="mockHoursIcon" style="color: var(--preview-brand);"></i> Horários de Funcionamento
+                                        </span>
+                                        <span class="badge bg-light text-muted border" style="font-size: 0.6rem;">Ao Vivo</span>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <ul class="list-unstyled mb-0" id="mockScheduleList" style="font-size: 0.65rem;">
+                                            <!-- Preenchido dinamicamente pelo JavaScript -->
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- CONTATO MOCK (ATUALIZA EM TEMPO REAL) -->
+                                <div class="card border-0 shadow-sm rounded-3 mb-2 bg-white p-2" id="mockContactCard">
+                                    <div class="d-flex flex-column gap-1" style="font-size: 0.65rem;">
+                                        <div class="d-flex align-items-center gap-1 text-secondary" id="mockAddressRow">
+                                            <i class="bi bi-geo-alt-fill text-danger"></i>
+                                            <span id="mockAddressText">{{ form.instance.address|default:'Endereço da Arena' }}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 mt-2">
+                                            <span class="btn btn-sm btn-outline-success rounded-circle p-1 d-inline-flex align-items-center justify-content-center" id="mockPhoneBadge" style="width: 24px; height: 24px;">
+                                                <i class="bi bi-whatsapp" style="font-size: 0.7rem;"></i> <span id="mockPhoneText" class="d-none">{{ form.instance.contact_phone|default:'WhatsApp' }}</span>
+                                            </span>
+                                            <span class="btn btn-sm btn-outline-danger rounded-circle p-1 d-inline-flex align-items-center justify-content-center" id="mockInstaBadge" style="width: 24px; height: 24px;">
+                                                <i class="bi bi-instagram" style="font-size: 0.7rem;"></i> <span id="mockInstaText" class="d-none">{{ form.instance.instagram|default:'@arena' }}</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- SOBRE MOCK (ATUALIZA EM TEMPO REAL) -->
+                                <div class="card border-0 shadow-sm rounded-3 mb-2 bg-white p-2 {% if not form.instance.about_text %}d-none{% endif %}" id="mockAboutCard">
+                                    <div class="d-flex flex-column gap-1" style="font-size: 0.65rem;">
+                                        <h6 class="fw-bold text-uppercase text-muted mb-1" style="font-size: 0.60rem;">Sobre a Arena</h6>
+                                        <div class="text-secondary" id="mockAboutText" style="white-space: pre-wrap;">{{ form.instance.about_text|default:'' }}</div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- FOOTER MOCK -->
+                            <div class="text-center py-3 px-2 mt-2 border-top border-light border-opacity-25" id="mockFooter"
+                                 style="background-color: var(--preview-dark); color: #f8f9fa; font-size: 0.65rem;">
+                                <div class="fw-bold mb-1" style="color: #ffffff;">{{ arena.name }}</div>
+                                <div class="small" style="color: #e9ecef; opacity: 0.8;">
+                                    {{ arena.name }} © {% now "Y" %} • Todos os direitos reservados
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4 mt-3 bg-body p-3">
+                        <div class="d-flex align-items-center gap-2 text-body">
+                            <i class="bi bi-magic fs-5 text-primary"></i>
+                            <div class="small">
+                                <strong>Preview 100% em Tempo Real:</strong> Logo, cores, fotos, textos e a grade de horários reagem instantaneamente a cada clique ou digitação!
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    // --- ESTADO DE ALTERAÇÕES ---
+    let isFormDirty = false;
+    const unsavedBadge = document.getElementById('unsavedBadge');
+
+    function markFormDirty() {
+        if (!isFormDirty) {
+            isFormDirty = true;
+            if (unsavedBadge) unsavedBadge.classList.remove('d-none');
+        }
+    }
+
+    function submitSiteForm() {
+        isFormDirty = false;
+        document.getElementById('siteCustomizeForm').submit();
+    }
+
+    window.addEventListener('beforeunload', function (e) {
+        if (isFormDirty) {
+            e.preventDefault();
+            e.returnValue = 'Você tem alterações não salvas. Deseja realmente sair?';
+        }
+    });
+
+    // --- ELEMENTOS DO FORMULÁRIO ---
+    const primaryInput = document.getElementById('id_primary_color');
+    const primaryHex = document.getElementById('primaryColorHex');
+    const secondaryInput = document.getElementById('id_secondary_color');
+    const secondaryHex = document.getElementById('secondaryColorHex');
+
+    const heroTitleInput = document.getElementById('id_hero_title');
+    const heroSubtitleInput = document.getElementById('id_hero_subtitle');
+    const addressInput = document.getElementById('id_address');
+    const phoneInput = document.getElementById('id_contact_phone');
+    const instaInput = document.getElementById('id_instagram');
+    const aboutInput = document.getElementById('id_about_text');
+    const logoInput = document.getElementById('id_logo');
+    const heroImageInput = document.getElementById('id_hero_image');
+
+    // Elementos de Mockup
+    const previewCard = document.getElementById('previewMockupCard');
+    const mockHeroTitle = document.getElementById('mockHeroTitle');
+    const mockHeroSubtitle = document.getElementById('mockHeroSubtitle');
+    const mockAddressText = document.getElementById('mockAddressText');
+    const mockPhoneText = document.getElementById('mockPhoneText');
+    const mockInstaText = document.getElementById('mockInstaText');
+    const mockAboutCard = document.getElementById('mockAboutCard');
+    const mockAboutText = document.getElementById('mockAboutText');
+    const mockHeroSection = document.getElementById('mockHeroSection');
+    const mockHoursIcon = document.getElementById('mockHoursIcon');
+
+    // --- 1. LÓGICA DE CORES EM TEMPO REAL ---
+    function updateColors(primary, secondary) {
+        markFormDirty();
+        if (primary) {
+            primaryInput.value = primary;
+            primaryHex.value = primary;
+            if (previewCard) {
+                previewCard.style.setProperty('--preview-brand', primary);
+            }
+            if (mockHoursIcon) {
+                mockHoursIcon.style.color = primary;
+            }
+        }
+        if (secondary) {
+            secondaryInput.value = secondary;
+            secondaryHex.value = secondary;
+            if (previewCard) {
+                previewCard.style.setProperty('--preview-dark', secondary);
+            }
+        }
+        // Atualiza os badges dos horários com a nova cor
+        updateMockSchedule();
+    }
+
+    function applyPalette(primary, secondary) {
+        updateColors(primary, secondary);
+    }
+
+    if (primaryInput) {
+        primaryInput.addEventListener('input', (e) => updateColors(e.target.value, null));
+        primaryInput.addEventListener('change', (e) => updateColors(e.target.value, null));
+    }
+    if (primaryHex) {
+        primaryHex.addEventListener('input', (e) => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                updateColors(e.target.value, null);
+            }
+        });
+    }
+    if (secondaryInput) {
+        secondaryInput.addEventListener('input', (e) => updateColors(null, e.target.value));
+        secondaryInput.addEventListener('change', (e) => updateColors(null, e.target.value));
+    }
+    if (secondaryHex) {
+        secondaryHex.addEventListener('input', (e) => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                updateColors(null, e.target.value);
+            }
+        });
+    }
+
+    // --- 2. LÓGICA DE TEXTOS EM TEMPO REAL ---
+    if (heroTitleInput) {
+        heroTitleInput.addEventListener('input', (e) => {
+            markFormDirty();
+            mockHeroTitle.innerText = e.target.value || 'Agende já sua quadra';
+        });
+    }
+    if (heroSubtitleInput) {
+        heroSubtitleInput.addEventListener('input', (e) => {
+            markFormDirty();
+            mockHeroSubtitle.innerText = e.target.value || 'Escolha sua modalidade e garanta seu horário.';
+        });
+    }
+    if (addressInput) {
+        addressInput.addEventListener('input', (e) => {
+            markFormDirty();
+            mockAddressText.innerText = e.target.value || 'Endereço da Arena';
+        });
+    }
+    if (phoneInput) {
+        phoneInput.addEventListener('input', (e) => {
+            markFormDirty();
+            mockPhoneText.innerText = e.target.value || 'WhatsApp';
+        });
+    }
+    if (instaInput) {
+        instaInput.addEventListener('input', (e) => {
+            markFormDirty();
+            mockInstaText.innerText = e.target.value || '@arena';
+        });
+    }
+    if (aboutInput) {
+        aboutInput.addEventListener('input', (e) => {
+            markFormDirty();
+            const val = e.target.value.trim();
+            if (val) {
+                mockAboutText.innerText = val;
+                mockAboutCard.classList.remove('d-none');
+            } else {
+                mockAboutCard.classList.add('d-none');
+            }
+        });
+    }
+
+    // --- 3. LÓGICA DE UPLOAD DE LOGO EM TEMPO REAL ---
+    if (logoInput) {
+        logoInput.addEventListener('change', function(e) {
+            markFormDirty();
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const result = ev.target.result;
+                    // Miniatura do formulário
+                    const preview = document.getElementById('logoPreviewImg');
+                    const placeholder = document.getElementById('logoPlaceholder');
+                    if (preview) {
+                        preview.src = result;
+                        preview.classList.remove('d-none');
+                    }
+                    if (placeholder) placeholder.classList.add('d-none');
+
+                    // Mockup do Navbar
+                    const mockImg = document.getElementById('mockLogoImg');
+                    const mockTrophyBox = document.getElementById('mockTrophyBox');
+                    if (mockImg) {
+                        mockImg.src = result;
+                        mockImg.classList.remove('d-none');
+                    }
+                    if (mockTrophyBox) {
+                        mockTrophyBox.classList.add('d-none');
+                    }
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+
+    // --- 4. LÓGICA DE BANNER EM TEMPO REAL ---
+    if (heroImageInput) {
+        heroImageInput.addEventListener('change', function(e) {
+            markFormDirty();
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const result = ev.target.result;
+                    const bannerPreview = document.getElementById('bannerPreviewImg');
+                    const bannerBadgeText = document.getElementById('bannerBadgeText');
+                    if (bannerPreview) bannerPreview.src = result;
+                    if (bannerBadgeText) bannerBadgeText.innerText = 'Nova Imagem Selecionada (Prévia)';
+                    if (mockHeroSection) {
+                        mockHeroSection.style.backgroundImage = `url('${result}')`;
+                    }
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+
+    // --- 5. LÓGICA DE HORÁRIOS EM TEMPO REAL NO MOCKUP ---
+    const weekNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
+    function updateMockSchedule() {
+        const list = document.getElementById('mockScheduleList');
+        if (!list) return;
+
+        let html = '';
+        for (let i = 0; i < 7; i++) {
+            const closedBox = document.getElementById(`day_${i}_closed`);
+            const openInput = document.getElementById(`day_${i}_open_time`);
+            const closeInput = document.getElementById(`day_${i}_close_time`);
+
+            const isClosed = closedBox ? closedBox.checked : false;
+            const openTime = openInput && openInput.value ? openInput.value : '07:00';
+            const closeTime = closeInput && closeInput.value ? closeInput.value : '23:00';
+
+            html += `
+                <li class="d-flex justify-content-between align-items-center py-1 border-bottom border-light">
+                    <span class="fw-semibold text-dark">${weekNames[i]}</span>
+                    ${isClosed
+                        ? '<span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-2" style="font-size: 0.6rem;">Fechado</span>'
+                        : `<span class="badge rounded-pill px-2 fw-bold" style="background-color: var(--preview-brand); color: var(--preview-dark); font-size: 0.6rem;">${openTime} às ${closeTime}</span>`
+                    }
+                </li>
+            `;
+        }
+        list.innerHTML = html;
+    }
+
+    function toggleDayStatus(day) {
+        markFormDirty();
+        const checkbox = document.getElementById(`day_${day}_closed`);
+        const label = document.getElementById(`label_day_${day}`);
+        const openInput = document.getElementById(`day_${day}_open_time`);
+        const closeInput = document.getElementById(`day_${day}_close_time`);
+
+        if (checkbox.checked) {
+            label.innerText = 'Fechado';
+            label.className = 'form-check-label small fw-semibold text-danger';
+            openInput.disabled = true;
+            closeInput.disabled = true;
+        } else {
+            label.innerText = 'Aberto';
+            label.className = 'form-check-label small fw-semibold text-success';
+            openInput.disabled = false;
+            closeInput.disabled = false;
+            if (!openInput.value) openInput.value = '07:00';
+            if (!closeInput.value) closeInput.value = '23:00';
+        }
+
+        updateMockSchedule();
+    }
+
+    function replicateMondayHours() {
+        markFormDirty();
+        const monClosed = document.getElementById('day_0_closed').checked;
+        const monOpen = document.getElementById('day_0_open_time').value;
+        const monClose = document.getElementById('day_0_close_time').value;
+
+        // Replicar para a semana inteira (Terça a Domingo)
+        for (let day = 1; day <= 6; day++) {
+            const closedCheckbox = document.getElementById(`day_${day}_closed`);
+            closedCheckbox.checked = monClosed;
+            toggleDayStatus(day);
+
+            const openInput = document.getElementById(`day_${day}_open_time`);
+            const closeInput = document.getElementById(`day_${day}_close_time`);
+            if (!monClosed) {
+                openInput.value = monOpen;
+                closeInput.value = monClose;
+            }
+        }
+        updateMockSchedule();
+    }
+
+    // Inicializa a tabela de horários no mockup ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
+        updateMockSchedule();
+    });
+
+    // --- COPIAR LINK PÚBLICO ---
+    function copyPublicLink() {
+        const urlText = document.getElementById('publicUrlText').innerText.trim();
+        navigator.clipboard.writeText(urlText).then(() => {
+            const icon = document.getElementById('copyIcon');
+            const text = document.getElementById('copyText');
+            icon.className = 'bi bi-check2 text-white';
+            text.innerText = 'Copiado!';
+            setTimeout(() => {
+                icon.className = 'bi bi-clipboard me-1';
+                text.innerText = 'Copiar Link';
+            }, 2500);
+        }).catch(err => {
+            alert('Link: ' + urlText);
+        });
+    }
+</script>
+
+<style>
+    .palette-preset-btn {
+        transition: all 0.2s ease;
+    }
+    .palette-preset-btn:hover {
+        transform: translateY(-2px);
+    }
+    .preview-mockup-card {
+        border: 1px solid rgba(0,0,0,0.1);
+        transition: box-shadow 0.3s ease;
+    }
+    .preview-mockup-body::-webkit-scrollbar {
+        width: 4px;
+    }
+    .preview-mockup-body::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.2);
+        border-radius: 4px;
+    }
+    [data-bs-theme="dark"] .preview-mockup-body {
+        background-color: #121212 !important;
+    }
+</style>
+{% endblock %}

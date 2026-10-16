@@ -1,0 +1,679 @@
+<!-- =======================================================
+     MODAL ELEGANTE: NOVA MATRÍCULA
+     ======================================================= -->
+<div class="modal fade" id="enrollmentModal" tabindex="-1" aria-labelledby="enrollmentModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-person-check-fill fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="enrollmentModalTitle">Nova Matrícula</h5>
+                        <small class="text-body-secondary" id="enrollmentModalSubtitle">Vincule um aluno a uma turma da sua arena.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="enrollmentForm" method="post" action="{% url 'lessons:enrollment_create' arena_slug=arena.slug %}" novalidate>
+                {% csrf_token %}
+                <!-- ID do cliente se for selecionado um existente -->
+                <input type="hidden" name="customer" id="id_enrollment_customer" value="">
+
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="enrollmentFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <!-- Card de Dados do Aluno com Autocomplete Inteligente -->
+                    <div class="card bg-body-tertiary border p-3 rounded-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="text-body-secondary mb-0 small fw-bold text-uppercase">
+                                <i class="bi bi-person me-1 text-warning"></i> Dados do Aluno
+                            </h6>
+                            <!-- Badge de Status do Aluno (Cadastrado vs Novo) -->
+                            <span id="student_status_badge" class="badge bg-secondary-subtle text-body-secondary border d-none"></span>
+                        </div>
+
+                        <!-- Campo de Busca / Nome com Autocomplete -->
+                        <div class="position-relative mb-2">
+                            <label class="form-label fw-bold small mb-1" for="id_enrollment_student_name">
+                                Nome do Aluno <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body border-end-0">
+                                    <i class="bi bi-search text-body-secondary" id="search-icon-indicator"></i>
+                                </span>
+                                <input type="text" 
+                                       name="new_student_name" 
+                                       id="id_enrollment_student_name" 
+                                       class="form-control border-start-0 ps-1" 
+                                       placeholder="Digite para buscar ou cadastrar..." 
+                                       autocomplete="off" 
+                                       required>
+                                <button class="btn btn-outline-secondary border d-none" 
+                                        type="button" 
+                                        id="btn-clear-student" 
+                                        onclick="clearSelectedStudent();" 
+                                        title="Limpar seleção">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback small" id="err-enrollment-new_student_name"></div>
+
+                            <!-- Dropdown Flutuante de Autocomplete -->
+                            <div id="student-autocomplete-dropdown" 
+                                 class="dropdown-menu w-100 shadow border py-1 mt-1 position-absolute" 
+                                 style="display: none; max-height: 230px; overflow-y: auto; z-index: 1060;">
+                                <!-- Itens inseridos dinamicamente pelo JavaScript -->
+                            </div>
+
+                            <!-- Mensagem Informativa Dinâmica -->
+                            <div id="student-info-message" class="mt-2"></div>
+                        </div>
+
+                        <!-- Campos Complementares: WhatsApp e Email -->
+                        <div class="row g-2 mt-1">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small mb-1" for="id_enrollment_student_phone">
+                                    WhatsApp / Telefone <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-body"><i class="bi bi-whatsapp text-success"></i></span>
+                                    <input type="text" 
+                                           name="new_student_phone" 
+                                           id="id_enrollment_student_phone" 
+                                           class="form-control" 
+                                           placeholder="(00) 00000-0000" 
+                                           maxlength="15" 
+                                           required>
+                                </div>
+                                <div class="invalid-feedback small" id="err-enrollment-new_student_phone"></div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small mb-1" for="id_enrollment_student_email">
+                                    Email <small class="text-body-secondary fw-normal">(opcional)</small>
+                                </label>
+                                <input type="email" 
+                                       name="new_student_email" 
+                                       id="id_enrollment_student_email" 
+                                       class="form-control form-control-sm" 
+                                       placeholder="aluno@email.com">
+                                <div class="invalid-feedback small" id="err-enrollment-new_student_email"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Turma -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small mb-1" for="id_enrollment_class_group">
+                            Turma <span class="text-danger">*</span>
+                        </label>
+                        <select name="class_group" id="id_enrollment_class_group" class="form-select" required>
+                            <option value="">Selecione uma turma...</option>
+                            {% for cls in classes %}
+                                <option value="{{ cls.id }}" data-price="{{ cls.monthly_price }}">
+                                    {{ cls.name }} {% if cls.teacher %}(Prof. {{ cls.teacher.name }}){% endif %} - R$ {{ cls.monthly_price }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback small" id="err-enrollment-class_group"></div>
+                    </div>
+
+                    <!-- Dados Financeiros e Matrícula -->
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_enrollment_agreed_price">
+                                Valor Mensal <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary">R$</span>
+                                <input type="number" step="0.01" name="agreed_price" id="id_enrollment_agreed_price" class="form-control" placeholder="0,00" required>
+                            </div>
+                            <div class="invalid-feedback small" id="err-enrollment-agreed_price"></div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_enrollment_due_day">
+                                Dia Vencimento <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" name="due_day" id="id_enrollment_due_day" class="form-control" value="10" min="1" max="31" required>
+                            <div class="invalid-feedback small" id="err-enrollment-due_day"></div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_enrollment_start_date">
+                                Início <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="start_date" id="id_enrollment_start_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                            <div class="invalid-feedback small" id="err-enrollment-start_date"></div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_enrollment_status">
+                                Status <span class="text-danger">*</span>
+                            </label>
+                            <select name="status" id="id_enrollment_status" class="form-select">
+                                <option value="ACTIVE" selected>Ativo</option>
+                                <option value="TRIAL">Experimental</option>
+                                <option value="PAUSED">Suspenso</option>
+                                <option value="CANCELED">Cancelado</option>
+                            </select>
+                            <div class="invalid-feedback small" id="err-enrollment-status"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4" id="btnSubmitEnrollment">
+                        <span class="btn-text">Concluir Matrícula</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAÇÃO DE EXCLUSÃO DE MATRÍCULA
+     ======================================================= -->
+<div class="modal fade" id="deleteEnrollmentModal" tabindex="-1" aria-labelledby="deleteEnrollmentModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="delete-icon-circle mx-auto mb-3">
+                    <i class="bi bi-trash3-fill fs-2 text-danger"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="deleteEnrollmentModalTitle">Excluir Matrícula</h4>
+                <p class="lead mb-2 fs-6">
+                    Tem certeza que deseja excluir a matrícula de <strong id="deleteEnrollmentStudentText" class="text-body"></strong>
+                    da turma <strong id="deleteEnrollmentClassText" class="text-body"></strong>?
+                </p>
+                <p class="text-danger small mb-4">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Isso também apagará o histórico financeiro vinculado a esta matrícula.
+                </p>
+
+                <form id="deleteEnrollmentForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-danger px-4" id="btnConfirmDeleteEnrollment">
+                            <i class="bi bi-trash me-1"></i> Sim, Excluir Matrícula
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inicialização direta do array no JavaScript (seguro com escapejs) -->
+<script>
+    var URL_ENROLLMENT_CREATE = "{% url 'lessons:enrollment_create' arena_slug=arena.slug %}";
+
+    // Usa var para evitar erros de "already declared" caso o template seja incluído múltiplas vezes
+    var arenaCustomers = [
+        {% for c in customers %}
+        {
+            "id": {{ c.id }},
+            "name": "{{ c.name|escapejs }}",
+            "phone": "{{ c.phone|default:''|escapejs }}",
+            "email": "{{ c.email|default:''|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    function loadArenaCustomers() {
+        // Os clientes já foram carregados na variável global arenaCustomers
+        console.log("Clientes carregados: ", arenaCustomers.length);
+    }
+
+    function getEnrollmentModal() {
+        const el = document.getElementById('enrollmentModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getDeleteEnrollmentModal() {
+        const el = document.getElementById('deleteEnrollmentModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function formatEnrollmentPhone(value) {
+        if (!value) return '';
+        const digits = value.replace(/\D/g, '');
+        if (digits.length <= 10) {
+            return digits.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').trim();
+        }
+        return digits.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').trim();
+    }
+
+    function normalizeText(text) {
+        return (text || '')
+            .toString()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+    }
+
+    function clearEnrollmentFormErrors() {
+        const alertBox = document.getElementById('enrollmentFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+        const inputs = document.querySelectorAll('#enrollmentForm .form-control, #enrollmentForm .form-select');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+        const feedbacks = document.querySelectorAll('#enrollmentForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    function hideStudentDropdown() {
+        const dropdown = document.getElementById('student-autocomplete-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+    }
+
+    // Seleciona um cliente existente a partir do dropdown
+    function selectStudentCustomer(customerId) {
+        const customer = arenaCustomers.find(c => c.id === customerId);
+        if (!customer) return;
+
+        const customerInput = document.getElementById('id_enrollment_customer');
+        const nameInput = document.getElementById('id_enrollment_student_name');
+        const phoneInput = document.getElementById('id_enrollment_student_phone');
+        const emailInput = document.getElementById('id_enrollment_student_email');
+        const badge = document.getElementById('student_status_badge');
+        const clearBtn = document.getElementById('btn-clear-student');
+        const msgContainer = document.getElementById('student-info-message');
+
+        if (customerInput) customerInput.value = customer.id;
+        if (nameInput) nameInput.value = customer.name;
+        if (phoneInput) phoneInput.value = formatEnrollmentPhone(customer.phone);
+        if (emailInput) emailInput.value = customer.email || '';
+
+        hideStudentDropdown();
+
+        if (clearBtn) clearBtn.classList.remove('d-none');
+
+        if (badge) {
+            badge.className = 'badge bg-success-subtle text-success border border-success-subtle py-1 px-2';
+            badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Cliente Cadastrado';
+            badge.classList.remove('d-none');
+        }
+
+        if (msgContainer) {
+            msgContainer.innerHTML = `
+                <div class="alert alert-success py-2 px-3 small mb-0 d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>Cliente selecionado:</strong> ${customer.name}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-link text-success p-0 text-decoration-none fw-semibold" onclick="clearSelectedStudent();">
+                        Trocar
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    // Limpa o cliente selecionado
+    function clearSelectedStudent() {
+        const customerInput = document.getElementById('id_enrollment_customer');
+        const nameInput = document.getElementById('id_enrollment_student_name');
+        const phoneInput = document.getElementById('id_enrollment_student_phone');
+        const emailInput = document.getElementById('id_enrollment_student_email');
+        const badge = document.getElementById('student_status_badge');
+        const clearBtn = document.getElementById('btn-clear-student');
+        const msgContainer = document.getElementById('student-info-message');
+
+        if (customerInput) customerInput.value = '';
+        if (nameInput) {
+            nameInput.value = '';
+            nameInput.focus();
+        }
+        if (phoneInput) phoneInput.value = '';
+        if (emailInput) emailInput.value = '';
+
+        if (clearBtn) clearBtn.classList.add('d-none');
+        if (badge) badge.classList.add('d-none');
+        if (msgContainer) msgContainer.innerHTML = '';
+        hideStudentDropdown();
+    }
+
+    // Lógica do Autocomplete enquanto o usuário digita o nome
+    function handleStudentNameInput(val) {
+        const query = normalizeText(val);
+        const customerInput = document.getElementById('id_enrollment_customer');
+        const dropdown = document.getElementById('student-autocomplete-dropdown');
+        const msgContainer = document.getElementById('student-info-message');
+        const badge = document.getElementById('student_status_badge');
+        const clearBtn = document.getElementById('btn-clear-student');
+
+        // Se o usuário alterou o nome digitado, desvincula o ID de cliente anterior
+        if (customerInput) customerInput.value = '';
+        if (clearBtn) {
+            if (val.trim()) clearBtn.classList.remove('d-none');
+            else clearBtn.classList.add('d-none');
+        }
+
+        if (query.length < 1) {
+            hideStudentDropdown();
+            if (msgContainer) msgContainer.innerHTML = '';
+            if (badge) badge.classList.add('d-none');
+            return;
+        }
+
+        // Filtra clientes por nome ou telefone
+        const rawDigits = val.replace(/\D/g, '');
+        const matches = arenaCustomers.filter(c => {
+            const nameMatch = normalizeText(c.name).includes(query);
+            const phoneMatch = rawDigits.length >= 2 && c.phone.replace(/\D/g, '').includes(rawDigits);
+            return nameMatch || phoneMatch;
+        });
+
+        if (matches.length > 0) {
+            let html = '';
+            matches.slice(0, 6).forEach(c => {
+                const phoneStr = c.phone ? formatEnrollmentPhone(c.phone) : 'Sem telefone';
+                html += `
+                    <div class="dropdown-item py-2 px-3 d-flex justify-content-between align-items-center" 
+                         style="cursor: pointer;"
+                         onclick="selectStudentCustomer(${c.id});">
+                        <div>
+                            <div class="fw-bold text-body">
+                                <i class="bi bi-person-fill text-warning me-1"></i> ${c.name}
+                            </div>
+                            <small class="text-body-secondary">
+                                <i class="bi bi-whatsapp me-1 text-success"></i> ${phoneStr}
+                            </small>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                            Selecionar
+                        </span>
+                    </div>
+                `;
+            });
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+
+            if (msgContainer) msgContainer.innerHTML = '';
+            if (badge) badge.classList.add('d-none');
+        } else {
+            // Nenhum cliente encontrado -> Cliente ainda não cadastrado!
+            hideStudentDropdown();
+            if (badge) {
+                badge.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2';
+                badge.innerHTML = '<i class="bi bi-person-plus-fill me-1"></i>Novo Cliente';
+                badge.classList.remove('d-none');
+            }
+            if (msgContainer) {
+                msgContainer.innerHTML = `
+                    <div class="alert alert-warning-subtle text-body border py-2 px-3 small mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill text-warning fs-6 flex-shrink-0"></i>
+                        <div>
+                            <strong>Cliente ainda não cadastrado.</strong> Preencha o WhatsApp e e-mail abaixo para cadastrá-lo ao salvar a matrícula.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    function openNewEnrollmentModal(classId = null) {
+        const form = document.getElementById('enrollmentForm');
+        if (!form) return;
+        form.reset();
+        form.action = URL_ENROLLMENT_CREATE;
+
+        clearSelectedStudent();
+        clearEnrollmentFormErrors();
+
+        document.getElementById('id_enrollment_due_day').value = "10";
+        document.getElementById('id_enrollment_status').value = "ACTIVE";
+
+        const classSelect = document.getElementById('id_enrollment_class_group');
+        const classContainer = classSelect ? classSelect.closest('.mb-3') : null;
+        
+        if (classSelect && classId) {
+            classSelect.value = classId;
+            // Disparar o evento change para preencher o preço automaticamente
+            classSelect.dispatchEvent(new Event('change'));
+            if (classContainer) classContainer.style.display = 'none';
+        } else {
+            if (classContainer) classContainer.style.display = 'block';
+        }
+
+        const modal = getEnrollmentModal();
+        if (modal) modal.show();
+    }
+
+    function openDeleteEnrollmentModal(btn) {
+        const form = document.getElementById('deleteEnrollmentForm');
+        if (!form || !btn) return;
+
+        const student = btn.getAttribute('data-student') || '';
+        const className = btn.getAttribute('data-class') || '';
+        const url = btn.getAttribute('data-url') || '';
+
+        form.action = url;
+        document.getElementById('deleteEnrollmentStudentText').textContent = student;
+        document.getElementById('deleteEnrollmentClassText').textContent = className;
+
+        const modal = getDeleteEnrollmentModal();
+        if (modal) modal.show();
+    }
+
+    function initEnrollmentFlashMessages() {
+        const savedFlash = sessionStorage.getItem('enrollment_flash_msg');
+        if (savedFlash) {
+            sessionStorage.removeItem('enrollment_flash_msg');
+            const flashContainer = document.getElementById('ajax-flash-container');
+            if (flashContainer) {
+                flashContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> ${savedFlash}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        loadArenaCustomers();
+        initEnrollmentFlashMessages();
+
+        // Autocomplete no campo de Nome
+        const nameInput = document.getElementById('id_enrollment_student_name');
+        if (nameInput) {
+            nameInput.addEventListener('input', function(e) {
+                handleStudentNameInput(e.target.value);
+            });
+            nameInput.addEventListener('focus', function(e) {
+                if (e.target.value.trim().length >= 1 && !document.getElementById('id_enrollment_customer').value) {
+                    handleStudentNameInput(e.target.value);
+                }
+            });
+        }
+
+        // Fecha o dropdown se clicar fora
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('student-autocomplete-dropdown');
+            const nameInput = document.getElementById('id_enrollment_student_name');
+            if (dropdown && !dropdown.contains(e.target) && e.target !== nameInput) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Máscara de telefone
+        const phoneInput = document.getElementById('id_enrollment_student_phone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                e.target.value = formatEnrollmentPhone(e.target.value);
+            });
+        }
+
+        // Auto preenche valor mensal ao selecionar a turma
+        const selectClass = document.getElementById('id_enrollment_class_group');
+        if (selectClass) {
+            selectClass.addEventListener('change', function() {
+                const opt = this.options[this.selectedIndex];
+                const price = opt ? opt.getAttribute('data-price') : null;
+                const priceInput = document.getElementById('id_enrollment_agreed_price');
+                if (price && priceInput && (!priceInput.value || parseFloat(priceInput.value) === 0)) {
+                    priceInput.value = parseFloat(price.replace(',', '.')).toFixed(2);
+                }
+            });
+        }
+    });
+
+    document.addEventListener("submit", async function(e) {
+        // Form Nova Matrícula
+        if (e.target && e.target.id === 'enrollmentForm') {
+            e.preventDefault();
+            const form = e.target;
+            clearEnrollmentFormErrors();
+
+            const customerId = document.getElementById('id_enrollment_customer')?.value;
+            const nameInput = document.getElementById('id_enrollment_student_name');
+            const phoneInput = document.getElementById('id_enrollment_student_phone');
+            const classInput = document.getElementById('id_enrollment_class_group');
+            const priceInput = document.getElementById('id_enrollment_agreed_price');
+
+            let hasError = false;
+
+            if (!nameInput.value.trim()) {
+                nameInput.classList.add('is-invalid');
+                document.getElementById('err-enrollment-new_student_name').textContent = 'Informe o nome do aluno.';
+                hasError = true;
+            }
+
+            // Se não é cliente já cadastrado, telefone é obrigatório para novo cadastro
+            if (!customerId && !phoneInput.value.trim()) {
+                phoneInput.classList.add('is-invalid');
+                document.getElementById('err-enrollment-new_student_phone').textContent = 'Informe o WhatsApp para cadastrar o novo aluno.';
+                hasError = true;
+            }
+
+            if (!classInput.value) {
+                classInput.classList.add('is-invalid');
+                document.getElementById('err-enrollment-class_group').textContent = 'Selecione a turma.';
+                hasError = true;
+            }
+
+            if (!priceInput.value.trim() || parseFloat(priceInput.value) < 0) {
+                priceInput.classList.add('is-invalid');
+                document.getElementById('err-enrollment-agreed_price').textContent = 'Informe o valor mensal.';
+                hasError = true;
+            }
+
+            if (hasError) {
+                const alertBox = document.getElementById('enrollmentFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Por favor, preencha os campos obrigatórios em destaque.';
+                return;
+            }
+
+            const submitBtn = document.getElementById('btnSubmitEnrollment');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getEnrollmentModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('enrollment_flash_msg', data.message || 'Matrícula realizada com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('enrollmentFormAlert');
+                    alertBox.classList.remove('d-none');
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.getElementById(`id_enrollment_${field}`);
+                            const feedback = document.getElementById(`err-enrollment-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Verifique os dados da matrícula.');
+                }
+            } catch (err) {
+                console.error('Erro:', err);
+                const alertBox = document.getElementById('enrollmentFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // Form Excluir Matrícula
+        if (e.target && e.target.id === 'deleteEnrollmentForm') {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('btnConfirmDeleteEnrollment');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Excluindo...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getDeleteEnrollmentModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('enrollment_flash_msg', data.message || 'Matrícula excluída com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Não foi possível excluir a matrícula.');
+                }
+            } catch (err) {
+                console.error('Erro:', err);
+                alert('Erro ao excluir a matrícula. Tente novamente.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    });
+</script>

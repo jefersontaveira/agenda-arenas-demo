@@ -1,0 +1,281 @@
+{% extends 'backoffice/base_dashboard.html' %}
+{% load humanize %}
+
+{% block content %}
+<!-- Flash message container para operações AJAX -->
+<div id="ajax-flash-container"></div>
+
+<div class="row align-items-center pt-3 pb-3 mb-4 border-bottom gy-3">
+    <div class="col-12 col-xl-5">
+        <h1 class="h2 mb-1">Gestão da Escolinha</h1>
+        <p class="text-body-secondary small mb-0">Visão geral das suas turmas e alunos.</p>
+    </div>
+    <div class="col-12 col-xl-7">
+        <div class="row g-2 justify-content-xl-end">
+            <div class="col-6 col-md-3 col-xl-auto">
+                <a href="{% url 'lessons:teacher_list' arena_slug=arena.slug %}" class="btn btn-action w-100">
+                    <i class="bi bi-person-badge me-1"></i> Professores
+                </a>
+            </div>
+            <div class="col-6 col-md-3 col-xl-auto">
+                <button type="button" class="btn btn-action w-100" onclick="openNewClassModal();">
+                    <i class="bi bi-calendar-plus me-1"></i> Nova Turma
+                </button>
+            </div>
+            <div class="col-6 col-md-3 col-xl-auto">
+                <a href="{% url 'lessons:student_list' arena_slug=arena.slug %}" class="btn btn-action w-100">
+                    <i class="bi bi-people me-1"></i> Alunos
+                </a>
+            </div>
+            <div class="col-6 col-md-3 col-xl-auto">
+                <button type="button" class="btn btn-action-primary w-100" onclick="openNewEnrollmentModal();">
+                    <i class="bi bi-plus-lg me-1"></i> Nova Matrícula
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100 border-start border-4 border-primary kpi-card">
+            <div class="card-body p-3">
+                <div class="text-body-secondary small text-uppercase fw-bold mb-1">Alunos Ativos</div>
+                <div class="h3 fw-bold mb-0 text-primary">{{ kpis.alunos_ativos }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100 border-start border-4 border-info kpi-card">
+            <div class="card-body p-3">
+                <div class="text-body-secondary small text-uppercase fw-bold mb-1">Aulas Experimentais</div>
+                <div class="h3 fw-bold mb-0 text-info">{{ kpis.experimentais }}</div>
+                <small class="text-body-secondary" style="font-size: 0.72rem;">Potenciais clientes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <a href="{% url 'lessons:financial_list' arena_slug=arena.slug %}?status=PAID" class="text-decoration-none">
+            <div class="card shadow-sm h-100 border-start border-4 border-success kpi-card cursor-pointer">
+                <div class="card-body p-3">
+                    <div class="text-body-secondary small text-uppercase fw-bold mb-1">Receita Recebida</div>
+                    <div class="h3 fw-bold mb-0 text-success">R$ {{ kpis.receita_realizada|stringformat:".2f" }}</div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <a href="{% url 'lessons:financial_list' arena_slug=arena.slug %}?status=OVERDUE" class="text-decoration-none">
+            <div class="card shadow-sm h-100 border-start border-4 border-danger kpi-card cursor-pointer">
+                <div class="card-body p-3">
+                    <div class="text-body-secondary small text-uppercase fw-bold mb-1">Inadimplentes</div>
+                    <div class="h3 fw-bold mb-0 text-danger">{{ kpis.inadimplentes }}</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 overflow-hidden dashboard-table-card">
+    <div class="card-header bg-transparent py-3 d-flex flex-wrap gap-2 justify-content-between align-items-center border-bottom">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-event me-2 text-warning"></i>Aulas de Hoje ({{ hoje|date:"l, d/m" }})</h5>
+        <a href="{% url 'lessons:grade_completa' arena_slug=arena.slug %}" class="btn btn-sm btn-action">Ver Grade Completa</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 table-bordered table-hover">
+                <thead class="lessons-thead">
+                    <tr>
+                        <th class="d-md-none ps-3">Aulas</th> <!-- Cabeçalho unificado no mobile -->
+                        <th class="ps-4 d-none d-md-table-cell" style="width: 150px;">Horário</th>
+                        <th class="d-none d-md-table-cell">Turma</th>
+                        <th class="d-none d-md-table-cell">Professor</th>
+                        <th class="d-none d-md-table-cell">Quadra</th>
+                        <th class="d-none d-md-table-cell">Alunos</th>
+                        <th style="width: 120px;" class="text-center d-none d-md-table-cell">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aula in aulas_hoje %}
+                    <tr class="cursor-pointer hover-bg-light transition-all" onclick="window.location.href='{% url 'lessons:class_detail' arena_slug=arena.slug pk=aula.class_group.pk %}'">
+                        
+                        <!-- VISÃO MOBILE (Visível apenas < md) -->
+                        <td class="d-md-none p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="fw-bold text-primary">
+                                    <i class="bi bi-clock me-1"></i> {{ aula.start_time|time:"H:i" }} - {{ aula.end_time|time:"H:i" }}
+                                </div>
+                                <div class="text-end">
+                                    {% if aula.class_group.teacher %}
+                                        <div class="badge bg-secondary-subtle text-secondary border rounded-pill">
+                                            <i class="bi bi-person-badge me-1"></i> {{ aula.class_group.teacher.name|truncatechars:15 }}
+                                        </div>
+                                    {% else %}
+                                        <div class="badge bg-light text-secondary border rounded-pill fst-italic">
+                                            Sem prof.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="fw-bold text-body fs-6">{{ aula.class_group.name }}</div>
+                            <small class="text-body-secondary d-block mt-1">
+                                <i class="bi bi-geo-alt me-1"></i> {{ aula.class_group.court.name|default:"Quadra não definida" }}
+                            </small>
+                        </td>
+
+                        <!-- VISÃO DESKTOP (Invisível no mobile) -->
+                        <td class="ps-4 fw-bold time-cell d-none d-md-table-cell">
+                            {{ aula.start_time|time:"H:i" }} - {{ aula.end_time|time:"H:i" }}
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            <span class="fw-bold text-body">{{ aula.class_group.name }}</span><br>
+                            <small class="text-body-secondary">{{ aula.class_group.description|truncatechars:30 }}</small>
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            {% if aula.class_group.teacher %}
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-secondary bg-opacity-25 text-body fw-bold d-flex justify-content-center align-items-center me-2 border" style="width: 32px; height: 32px; font-size: 0.85rem;">
+                                        {{ aula.class_group.teacher.name|slice:":1" }}
+                                    </div>
+                                    <span class="text-body fw-semibold">{{ aula.class_group.teacher.name }}</span>
+                                </div>
+                            {% else %}
+                                <span class="text-body-secondary fst-italic">Sem professor</span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            <span class="badge court-badge">
+                                {{ aula.class_group.court.name|default:"Não definida" }}
+                            </span>
+                        </td>
+                        <td class="text-body fw-semibold d-none d-md-table-cell">
+                            {{ aula.class_group.active_students_count }} / {{ aula.class_group.max_students }}
+                        </td>
+
+                        <td class="text-center d-none d-md-table-cell" onclick="event.stopPropagation();">
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a href="{% url 'lessons:class_update' arena_slug=arena.slug pk=aula.class_group.pk %}" class="btn btn-sm btn-action" title="Editar Turma">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+
+                                <button type="button" class="btn btn-sm btn-action-danger" title="Excluir Turma"
+                                        data-id="{{ aula.class_group.pk }}"
+                                        data-name="{{ aula.class_group.name|escape }}"
+                                        data-students="{{ aula.class_group.active_students_count }}"
+                                        data-url="{% url 'lessons:class_delete' arena_slug=arena.slug pk=aula.class_group.pk %}"
+                                        onclick="openDeleteClassModal(this);">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-body-secondary">
+                            <i class="bi bi-calendar-x fs-1 mb-2 d-block opacity-50"></i>
+                            Nenhuma aula agendada para hoje.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% include 'lessons/modals/_class_modal.html' %}
+{% include 'lessons/modals/_enrollment_modal.html' %}
+
+<style>
+    .btn-header-action {
+        font-weight: 600;
+        border-color: #3b4252 !important;
+        color: var(--bs-body-color);
+    }
+    .btn-header-action:hover {
+        border-color: #334155 !important;
+        color: #0f172a !important;
+        background-color: #f1f5f9;
+    }
+    [data-bs-theme="dark"] .btn-header-action:hover {
+        border-color: var(--brand-color) !important;
+        color: var(--brand-color);
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+    
+    /* KPI Cards */
+    .kpi-card {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        border-radius: var(--card-radius);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+    }
+    [data-bs-theme="dark"] .kpi-card {
+        background-color: #171a22 !important;
+        border-color: #2d3340 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
+    }
+    [data-bs-theme="dark"] .kpi-card:hover {
+        border-color: #475569 !important;
+    }
+
+    /* Table */
+    .dashboard-table-card {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        border-radius: var(--card-radius);
+    }
+    [data-bs-theme="dark"] .dashboard-table-card {
+        background-color: #14171d !important;
+        border-color: #2c323e !important;
+    }
+
+    .lessons-thead th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 800;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--bs-border-color) !important;
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+    [data-bs-theme="dark"] .lessons-thead th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-color: #2c323e !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+
+    .time-cell {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-secondary-color);
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+    [data-bs-theme="dark"] .time-cell {
+        background-color: #181c24 !important;
+        color: #e2e8f0 !important;
+        border-right: 2px solid #333a48 !important;
+    }
+
+    .court-badge {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        border: 1px solid var(--bs-border-color);
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 8px;
+    }
+    [data-bs-theme="dark"] .court-badge {
+        background-color: #1e2229 !important;
+        color: #e2e8f0 !important;
+        border-color: #333a48 !important;
+    }
+</style>
+
+{% endblock %}

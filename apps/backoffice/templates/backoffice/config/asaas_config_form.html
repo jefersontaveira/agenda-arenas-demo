@@ -1,0 +1,165 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2 align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'backoffice:arena_config' arena_slug=arena.slug %}" class="text-decoration-none">Configurações</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Financeiro</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-1">Configuração Asaas (Subconta)</h1>
+        <p class="text-body-secondary small mb-0">Ative sua subconta Asaas para receber pagamentos PIX automaticamente com split de recebíveis.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm mb-4 border-0">
+            <div class="card-header bg-transparent py-3 border-bottom d-flex align-items-center">
+                <i class="bi bi-bank me-2 fs-5 text-success"></i>
+                <h5 class="mb-0 text-body fw-bold">Dados Bancários e Faturamento</h5>
+            </div>
+            
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="alert alert-info rounded-3 border-0 small mb-4">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        Preencha os dados abaixo corretamente. Eles serão usados para criar sua Subconta (White Label) na plataforma Asaas, permitindo recebimentos online via PIX.
+                    </div>
+
+                    <h6 class="fw-bold mb-3 text-body-secondary border-bottom pb-2">Informações Fiscais</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">CPF ou CNPJ *</label>
+                            {{ form.cpf_cnpj }}
+                            {% if form.cpf_cnpj.errors %}
+                                <div class="text-danger small mt-1">{{ form.cpf_cnpj.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tipo de Empresa *</label>
+                            {{ form.company_type }}
+                            {% if form.company_type.errors %}
+                                <div class="text-danger small mt-1">{{ form.company_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Data de Nascimento (PF) / Fundação (PJ) *</label>
+                            {{ form.birth_date }}
+                            {% if form.birth_date.errors %}
+                                <div class="text-danger small mt-1">{{ form.birth_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">E-mail (Login Subconta) *</label>
+                            {{ form.company_email }}
+                            <div class="form-text small">Para alertas e senhas da Subconta</div>
+                            {% if form.company_email.errors %}
+                                <div class="text-danger small mt-1">{{ form.company_email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-3 text-body-secondary border-bottom pb-2">Conta Bancária (Para Saque)</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Código do Banco *</label>
+                            {{ form.bank_code }}
+                            <div class="form-text small">Ex: 001 (BB), 237 (Bradesco), 341 (Itaú), 260 (Nubank)</div>
+                            {% if form.bank_code.errors %}
+                                <div class="text-danger small mt-1">{{ form.bank_code.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tipo de Conta *</label>
+                            {{ form.bank_account_type }}
+                            {% if form.bank_account_type.errors %}
+                                <div class="text-danger small mt-1">{{ form.bank_account_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Agência (Sem Dígito) *</label>
+                            {{ form.agency }}
+                            {% if form.agency.errors %}
+                                <div class="text-danger small mt-1">{{ form.agency.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Conta (Sem Dígito) *</label>
+                            {{ form.account }}
+                            {% if form.account.errors %}
+                                <div class="text-danger small mt-1">{{ form.account.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Dígito *</label>
+                            {{ form.account_digit }}
+                            {% if form.account_digit.errors %}
+                                <div class="text-danger small mt-1">{{ form.account_digit.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'backoffice:arena_config' arena_slug=arena.slug %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-success fw-bold">
+                            <i class="bi bi-cloud-upload me-1"></i> Salvar e Conectar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="card shadow-sm border-0 mb-4 bg-success bg-opacity-10 border-start border-success border-4">
+            <div class="card-body">
+                <h6 class="fw-bold text-success mb-3"><i class="bi bi-shield-lock-fill me-2"></i>Como Funciona?</h6>
+                <p class="small text-body-secondary mb-2">
+                    A integração <strong>Asaas</strong> automatiza seus recebimentos via Pix:
+                </p>
+                <ul class="small text-body-secondary mb-0 ps-3">
+                    <li class="mb-1"><strong>Sem burocracia:</strong> Seus clientes pagam no Pix e o valor é liquidado na hora.</li>
+                    <li><strong>Saque Fácil:</strong> O dinheiro fica na sua Wallet Asaas e pode ser transferido para sua Conta Bancária.</li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if form.instance.wallet_id %}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-2"></i>Status da Conexão</h6>
+                <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                    <span class="small text-body-secondary">Wallet ID</span>
+                    <span class="small fw-bold text-success">{{ form.instance.wallet_id }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small text-body-secondary">API Key</span>
+                    <span class="small fw-bold text-muted text-truncate ms-3">*******{{ form.instance.api_key|slice:"-6:" }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Máscaras de CPF/CNPJ (Simples) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/imask/6.4.3/imask.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var cpfCnpjInput = document.getElementById("id_cpf_cnpj");
+        if (cpfCnpjInput) {
+            var maskOptions = {
+                mask: [
+                    { mask: '000.000.000-00' },
+                    { mask: '00.000.000/0000-00' }
+                ]
+            };
+            IMask(cpfCnpjInput, maskOptions);
+        }
+    });
+</script>
+{% endblock %}

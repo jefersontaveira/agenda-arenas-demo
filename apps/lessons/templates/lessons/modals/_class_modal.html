@@ -1,0 +1,515 @@
+<!-- =======================================================
+     MODAL ELEGANTE: CADASTRAR NOVA TURMA
+     ======================================================= -->
+<div class="modal fade" id="classModal" tabindex="-1" aria-labelledby="classModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-calendar-week fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="classModalTitle">Nova Turma</h5>
+                        <small class="text-body-secondary" id="classModalSubtitle">Cadastre uma nova turma e seus horários semanais.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="classForm" method="post" action="{% url 'lessons:class_create' arena_slug=arena.slug %}" novalidate>
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="classFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <!-- Dados Principais da Turma -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_class_name">
+                                Nome da Turma <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="id_class_name" class="form-control" placeholder="Ex: Beach Tennis Iniciante (Noite)" required>
+                            <div class="invalid-feedback small" id="err-class-name"></div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <label class="form-label fw-bold small mb-1" for="id_class_teacher">
+                                Professor
+                            </label>
+                            <select name="teacher" id="id_class_teacher" class="form-select">
+                                <option value="">Sem professor</option>
+                                {% for t in teachers %}
+                                    <option value="{{ t.id }}">{{ t.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback small" id="err-class-teacher"></div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <label class="form-label fw-bold small mb-1" for="id_class_court">
+                                Quadra
+                            </label>
+                            <select name="court" id="id_class_court" class="form-select">
+                                <option value="">Não definida</option>
+                                {% for c in courts %}
+                                    <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback small" id="err-class-court"></div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4">
+                            <label class="form-label fw-bold small mb-1" for="id_class_monthly_price">
+                                Valor da Mensalidade <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary">R$</span>
+                                <input type="number" step="0.01" name="monthly_price" id="id_class_monthly_price" class="form-control" placeholder="0,00" required>
+                            </div>
+                            <div class="invalid-feedback small" id="err-class-monthly_price"></div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4">
+                            <label class="form-label fw-bold small mb-1" for="id_class_max_students">
+                                Máximo de Alunos (Vagas) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" name="max_students" id="id_class_max_students" class="form-control" value="8" min="1" required>
+                            <div class="invalid-feedback small" id="err-class-max_students"></div>
+                        </div>
+
+                        <div class="col-12 col-md-4 d-flex align-items-center mt-3 mt-md-4">
+                            <div class="form-check form-switch ps-5">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="id_class_is_active" checked>
+                                <label class="form-check-label fw-bold small" for="id_class_is_active">
+                                    Turma Ativa?
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-1" for="id_class_description">
+                                Descrição <small class="text-body-secondary fw-normal">(opcional)</small>
+                            </label>
+                            <textarea name="description" id="id_class_description" class="form-control" rows="2" placeholder="Requisitos, nível técnico, observações da turma..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Horários Semanais -->
+                    <div class="card border rounded-3 p-3 bg-body-tertiary">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0 text-body">
+                                    <i class="bi bi-clock-history me-1 text-warning"></i> Horários Semanais
+                                </h6>
+                                <small class="text-body-secondary">Adicione os dias e turnos em que as aulas acontecem.</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-action-primary" id="btn-add-modal-schedule" onclick="addModalScheduleRow();">
+                                <i class="bi bi-plus-lg me-1"></i> Adicionar Horário
+                            </button>
+                        </div>
+
+                        <!-- Management form do formset de horários -->
+                        <input type="hidden" name="schedules-TOTAL_FORMS" id="id_schedules-TOTAL_FORMS" value="1">
+                        <input type="hidden" name="schedules-INITIAL_FORMS" id="id_schedules-INITIAL_FORMS" value="0">
+                        <input type="hidden" name="schedules-MIN_NUM_FORMS" id="id_schedules-MIN_NUM_FORMS" value="0">
+                        <input type="hidden" name="schedules-MAX_NUM_FORMS" id="id_schedules-MAX_NUM_FORMS" value="1000">
+
+                        <div id="modal-schedule-container" class="d-flex flex-column gap-2">
+                            <!-- Linha 0 inicial -->
+                            <div class="modal-schedule-row card border p-3 shadow-none">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label small text-body-secondary fw-bold mb-1">Dia da Semana <span class="text-danger">*</span></label>
+                                        <select name="schedules-0-day_of_week" class="form-select form-select-sm" required>
+                                            <option value="0">Segunda-feira</option>
+                                            <option value="1">Terça-feira</option>
+                                            <option value="2">Quarta-feira</option>
+                                            <option value="3">Quinta-feira</option>
+                                            <option value="4">Sexta-feira</option>
+                                            <option value="5">Sábado</option>
+                                            <option value="6">Domingo</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label class="form-label small text-body-secondary fw-bold mb-1">Horário de Início <span class="text-danger">*</span></label>
+                                        <input type="time" name="schedules-0-start_time" class="form-control form-control-sm" required>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label class="form-label small text-body-secondary fw-bold mb-1">Horário de Fim <span class="text-danger">*</span></label>
+                                        <input type="time" name="schedules-0-end_time" class="form-control form-control-sm" required>
+                                    </div>
+                                    <div class="col-12 col-md-2 text-end">
+                                        <button type="button" class="btn btn-sm btn-action-danger w-100" onclick="removeModalScheduleRow(this);" title="Remover este horário">
+                                            <i class="bi bi-trash"></i><span class="d-md-none ms-1">Remover</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4" id="btnSubmitClass">
+                        <span class="btn-text">Cadastrar Turma</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Template fora do formulário para evitar que campos invisíveis com required bloqueiem o envio -->
+<template id="modal-schedule-empty-template">
+    <div class="modal-schedule-row card border p-3 shadow-none">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label small text-body-secondary fw-bold mb-1">Dia da Semana <span class="text-danger">*</span></label>
+                <select name="schedules-__prefix__-day_of_week" class="form-select form-select-sm" required>
+                    <option value="0">Segunda-feira</option>
+                    <option value="1">Terça-feira</option>
+                    <option value="2">Quarta-feira</option>
+                    <option value="3">Quinta-feira</option>
+                    <option value="4">Sexta-feira</option>
+                    <option value="5">Sábado</option>
+                    <option value="6">Domingo</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small text-body-secondary fw-bold mb-1">Horário de Início <span class="text-danger">*</span></label>
+                <input type="time" name="schedules-__prefix__-start_time" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small text-body-secondary fw-bold mb-1">Horário de Fim <span class="text-danger">*</span></label>
+                <input type="time" name="schedules-__prefix__-end_time" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-12 col-md-2 text-end">
+                <button type="button" class="btn btn-sm btn-action-danger w-100" onclick="removeModalScheduleRow(this);" title="Remover este horário">
+                    <i class="bi bi-trash"></i><span class="d-md-none ms-1">Remover</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAÇÃO DE EXCLUSÃO DE TURMA
+     ======================================================= -->
+<div class="modal fade" id="deleteClassModal" tabindex="-1" aria-labelledby="deleteClassModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="delete-icon-circle mx-auto mb-3">
+                    <i class="bi bi-trash3-fill fs-2 text-danger"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="deleteClassModalTitle">Excluir Turma</h4>
+                <p class="lead mb-2 fs-6">
+                    Tem certeza que deseja excluir a turma <strong id="deleteClassNameText" class="text-body"></strong>?
+                </p>
+                <div id="deleteClassWarningAlert" class="alert alert-warning text-start border-0 small mb-3 d-none">
+                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                    <strong>Atenção:</strong> Esta turma possui <strong id="deleteClassStudentCount">0</strong> aluno(s) ativo(s).
+                    O histórico de matrículas e financeiro vinculado a esta turma poderá ser afetado.
+                </div>
+                <p class="text-body-secondary small mb-4">
+                    Esta ação é irreversível e removerá todos os horários vinculados a esta turma.
+                </p>
+
+                <form id="deleteClassForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-danger px-4" id="btnConfirmDeleteClass">
+                            <i class="bi bi-trash me-1"></i> Sim, Excluir Turma
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const URL_CLASS_CREATE = "{% url 'lessons:class_create' arena_slug=arena.slug %}";
+
+    function getClassModal() {
+        const el = document.getElementById('classModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getDeleteClassModal() {
+        const el = document.getElementById('deleteClassModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function clearClassFormErrors() {
+        const alertBox = document.getElementById('classFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+        const inputs = document.querySelectorAll('#classForm .form-control, #classForm .form-select');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+        const feedbacks = document.querySelectorAll('#classForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    // Adiciona uma nova linha de horário
+    function addModalScheduleRow() {
+        const container = document.getElementById('modal-schedule-container');
+        const totalFormsInput = document.getElementById('id_schedules-TOTAL_FORMS');
+        const template = document.getElementById('modal-schedule-empty-template');
+        if (!container || !totalFormsInput || !template) return;
+
+        const idx = parseInt(totalFormsInput.value) || 0;
+        const html = template.innerHTML.replace(/__prefix__/g, idx);
+        container.insertAdjacentHTML('beforeend', html);
+        totalFormsInput.value = idx + 1;
+    }
+
+    // Remove uma linha de horário
+    function removeModalScheduleRow(btn) {
+        const container = document.getElementById('modal-schedule-container');
+        const row = btn.closest('.modal-schedule-row');
+        if (!row || !container) return;
+
+        const allRows = container.querySelectorAll('.modal-schedule-row');
+        if (allRows.length > 1) {
+            row.remove();
+        } else {
+            // Se for a única linha restante, limpa os valores
+            row.querySelectorAll('input').forEach(i => i.value = '');
+            const sel = row.querySelector('select');
+            if (sel) sel.selectedIndex = 0;
+        }
+    }
+
+    function resetModalScheduleFormset() {
+        const container = document.getElementById('modal-schedule-container');
+        const totalForms = document.getElementById('id_schedules-TOTAL_FORMS');
+        const template = document.getElementById('modal-schedule-empty-template');
+        if (!container || !totalForms || !template) return;
+
+        totalForms.value = 1;
+        container.innerHTML = template.innerHTML.replace(/__prefix__/g, 0);
+    }
+
+    function openNewClassModal() {
+        const form = document.getElementById('classForm');
+        if (!form) return;
+        form.reset();
+        form.action = URL_CLASS_CREATE;
+
+        document.getElementById('id_class_is_active').checked = true;
+        document.getElementById('id_class_max_students').value = "8";
+
+        clearClassFormErrors();
+        resetModalScheduleFormset();
+
+        const modal = getClassModal();
+        if (modal) modal.show();
+    }
+
+    function openDeleteClassModal(btn) {
+        const form = document.getElementById('deleteClassForm');
+        if (!form || !btn) return;
+
+        const name = btn.getAttribute('data-name') || '';
+        const url = btn.getAttribute('data-url') || '';
+        const studentCount = parseInt(btn.getAttribute('data-students') || '0');
+
+        form.action = url;
+        document.getElementById('deleteClassNameText').textContent = name;
+
+        const warnAlert = document.getElementById('deleteClassWarningAlert');
+        const countSpan = document.getElementById('deleteClassStudentCount');
+        if (warnAlert && countSpan) {
+            if (studentCount > 0) {
+                countSpan.textContent = studentCount;
+                warnAlert.classList.remove('d-none');
+            } else {
+                warnAlert.classList.add('d-none');
+            }
+        }
+
+        const modal = getDeleteClassModal();
+        if (modal) modal.show();
+    }
+
+    function initClassFlashMessages() {
+        const savedFlash = sessionStorage.getItem('class_flash_msg');
+        if (savedFlash) {
+            sessionStorage.removeItem('class_flash_msg');
+            const flashContainer = document.getElementById('ajax-flash-container');
+            if (flashContainer) {
+                flashContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> ${savedFlash}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initClassFlashMessages();
+    });
+
+    document.addEventListener("submit", async function(e) {
+        // Form Nova Turma
+        if (e.target && e.target.id === 'classForm') {
+            e.preventDefault();
+            const form = e.target;
+            clearClassFormErrors();
+
+            // Validação de campos obrigatórios antes do envio
+            let hasError = false;
+            const nameInput = document.getElementById('id_class_name');
+            const priceInput = document.getElementById('id_class_monthly_price');
+            const maxInput = document.getElementById('id_class_max_students');
+
+            if (!nameInput.value.trim()) {
+                nameInput.classList.add('is-invalid');
+                document.getElementById('err-class-name').textContent = 'Informe o nome da turma.';
+                hasError = true;
+            }
+            if (!priceInput.value.trim() || parseFloat(priceInput.value) < 0) {
+                priceInput.classList.add('is-invalid');
+                document.getElementById('err-class-monthly_price').textContent = 'Informe o valor da mensalidade.';
+                hasError = true;
+            }
+            if (!maxInput.value.trim() || parseInt(maxInput.value) <= 0) {
+                maxInput.classList.add('is-invalid');
+                document.getElementById('err-class-max_students').textContent = 'Informe a quantidade de vagas.';
+                hasError = true;
+            }
+
+            // Valida se há pelo menos um horário com início e fim
+            const scheduleRows = document.querySelectorAll('#modal-schedule-container .modal-schedule-row');
+            let hasValidSchedule = false;
+            scheduleRows.forEach(row => {
+                const start = row.querySelector('input[name$="-start_time"]')?.value;
+                const end = row.querySelector('input[name$="-end_time"]')?.value;
+                if (start && end) {
+                    hasValidSchedule = true;
+                }
+            });
+
+            if (!hasValidSchedule) {
+                const alertBox = document.getElementById('classFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Adicione pelo menos um horário completo (início e fim) para a turma.';
+                return;
+            }
+
+            if (hasError) {
+                const alertBox = document.getElementById('classFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Por favor, corrija os campos indicados abaixo.';
+                return;
+            }
+
+            const submitBtn = document.getElementById('btnSubmitClass');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getClassModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('class_flash_msg', data.message || 'Turma criada com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('classFormAlert');
+                    alertBox.classList.remove('d-none');
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.getElementById(`id_class_${field}`);
+                            const feedback = document.getElementById(`err-class-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Verifique os dados informados.');
+                }
+            } catch (err) {
+                console.error('Erro:', err);
+                const alertBox = document.getElementById('classFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // Form Excluir Turma
+        if (e.target && e.target.id === 'deleteClassForm') {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('btnConfirmDeleteClass');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Excluindo...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getDeleteClassModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('class_flash_msg', data.message || 'Turma excluída com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Não foi possível excluir a turma.');
+                }
+            } catch (err) {
+                console.error('Erro:', err);
+                alert('Erro ao excluir a turma. Tente novamente.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    });
+</script>

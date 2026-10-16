@@ -1,0 +1,138 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2 align-items-center pt-3 pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h2 mb-1">Modalidades Esportivas</h1>
+        <p class="text-body-secondary small mb-0">Cadastre e gerencie os esportes aceitos nas quadras da sua arena.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'backoffice:court_list' arena_slug=arena.slug %}" class="btn btn-action">
+            <i class="bi bi-arrow-left me-1"></i> Minhas Quadras
+        </a>
+        <a href="{% url 'backoffice:modality_create' arena_slug=arena.slug %}" class="btn btn-action-primary">
+            <i class="bi bi-plus-lg me-1"></i> Nova Modalidade
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for mod in modalities %}
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="card h-100 shadow-sm modality-card hover-lift transition-all">
+            <div class="card-body text-center d-flex flex-column justify-content-between p-4">
+                <div>
+                    <div class="modality-emoji-wrapper mb-3 mx-auto">
+                        <span class="modality-emoji">{{ mod.emoji|default:"🏐" }}</span>
+                    </div>
+                    <h5 class="fw-bold mb-2 modality-title text-truncate" title="{{ mod.name }}">
+                        {{ mod.name }}
+                    </h5>
+                    <div>
+                        {% if mod.court_count > 0 %}
+                            <span class="badge court-count-badge">
+                                <i class="bi bi-grid-1x2 me-1"></i> {{ mod.court_count }} quadra{{ mod.court_count|pluralize }}
+                            </span>
+                        {% else %}
+                            <span class="badge text-body-secondary border bg-body-tertiary">
+                                Nenhuma quadra vinculada
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4 pt-3 border-top w-100">
+                    <a href="{% url 'backoffice:modality_edit' arena_slug=arena.slug pk=mod.pk %}" class="btn btn-action flex-grow-1">
+                        <i class="bi bi-pencil me-1"></i> Editar
+                    </a>
+                    <a href="{% url 'backoffice:modality_delete' arena_slug=arena.slug pk=mod.pk %}" class="btn btn-action-danger" title="Excluir modalidade">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5 bg-body-tertiary rounded-3 border border-dashed">
+            <div class="mb-3 text-body-secondary opacity-50">
+                <i class="bi bi-trophy fs-1"></i>
+            </div>
+            <h5 class="fw-bold text-body">Nenhuma modalidade cadastrada</h5>
+            <p class="text-body-secondary mb-4">Adicione esportes como Vôlei, Beach Tennis, Futebol ou Futevôlei para suas quadras.</p>
+            <a href="{% url 'backoffice:modality_create' arena_slug=arena.slug %}" class="btn btn-action-primary px-4">
+                <i class="bi bi-plus-lg me-1"></i> Cadastrar Primeira Modalidade
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    .modality-card {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        border-radius: var(--card-radius);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .modality-emoji-wrapper {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background-color: var(--bs-tertiary-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid var(--bs-border-color);
+    }
+    .modality-emoji {
+        font-size: 2.3rem;
+        line-height: 1;
+    }
+    .modality-title {
+        color: var(--bs-heading-color);
+        font-size: 1.15rem;
+    }
+    .court-count-badge {
+        background-color: rgba(255, 193, 7, 0.15);
+        color: #b28600;
+        border: 1px solid rgba(255, 193, 7, 0.35);
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 8px;
+    }
+    [data-bs-theme="dark"] .court-count-badge {
+        background-color: rgba(255, 193, 7, 0.12);
+        color: #ffca2c;
+        border-color: rgba(255, 193, 7, 0.3);
+    }
+
+    [data-bs-theme="dark"] .modality-card {
+        background-color: #171a22 !important;
+        border-color: #2d3340 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
+    }
+    [data-bs-theme="dark"] .modality-card:hover {
+        border-color: #475569 !important;
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.4) !important;
+    }
+    [data-bs-theme="dark"] .modality-title {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .modality-emoji-wrapper {
+        background-color: #1e2229 !important;
+        border-color: #333a48 !important;
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-4px);
+    }
+    .transition-all {
+        transition: all 0.2s ease;
+    }
+    .border-dashed {
+        border-style: dashed !important;
+    }
+</style>
+{% endblock %}

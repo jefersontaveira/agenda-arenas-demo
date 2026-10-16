@@ -1,0 +1,983 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Agendamentos - {{ arena.name }}</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --brand-color: {{ arena.config.primary_color|default:"#0d6efd" }};
+            --brand-secondary: {{ arena.config.secondary_color|default:"#198754" }};
+            --brand-dark: #0f172a;
+            --brand-bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            background-color: var(--brand-bg);
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar-custom {
+            background: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .btn-brand {
+            --bs-btn-bg: var(--brand-color);
+            --bs-btn-border-color: var(--brand-color);
+            --bs-btn-hover-bg: #0f172a;
+            --bs-btn-hover-border-color: #0f172a;
+            --bs-btn-hover-color: #ffffff;
+            --bs-btn-color: #ffffff;
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+            color: #ffffff !important;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-brand:hover,
+        .btn-brand:focus,
+        .btn-brand:active {
+            background-color: #0f172a !important;
+            border-color: #0f172a !important;
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        .athlete-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 2.5rem 0 3.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .athlete-hero::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 250px;
+            height: 250px;
+            background: var(--brand-color);
+            opacity: 0.15;
+            border-radius: 50%;
+            filter: blur(50px);
+            pointer-events: none !important;
+            z-index: 1;
+        }
+
+        .athlete-hero .container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .athlete-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--brand-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .card-custom {
+            background: #ffffff;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card-custom:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        .booking-card {
+            border-left: 5px solid var(--brand-color);
+        }
+
+        .booking-card.status-CONFIRMED {
+            border-left-color: #10b981;
+        }
+
+        .booking-card.status-PENDING {
+            border-left-color: #f59e0b;
+        }
+
+        .booking-card.status-CANCELED {
+            border-left-color: #ef4444;
+        }
+
+        .date-box {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 8px 12px;
+            text-align: center;
+            min-width: 65px;
+        }
+
+        .date-box .day {
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1;
+            color: #0f172a;
+        }
+
+        .date-box .month {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .nav-pills-custom .nav-link {
+            border-radius: 50rem;
+            padding: 0.6rem 1.4rem;
+            font-weight: 600;
+            color: #64748b;
+            background: #f1f5f9;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .nav-pills-custom .nav-link.active {
+            background-color: var(--brand-color);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-chip {
+            border-radius: 50rem;
+            padding: 0.35rem 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            color: #64748b;
+            transition: all 0.15s ease;
+        }
+
+        .filter-chip.active {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+        }
+
+        /* Ocultar scrollbar dos filtros */
+        .filters-scroll {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .filters-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .pulse-warning {
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        .empty-state {
+            padding: 4rem 1.5rem;
+            text-align: center;
+        }
+
+        .empty-state i {
+            font-size: 3.5rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-custom sticky-top py-3">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'scheduler:arena_home' arena_slug=arena.slug %}">
+            {% if arena.config.logo %}
+                <img src="{{ arena.config.logo.url }}" alt="{{ arena.name }}" height="42" class="rounded-3 shadow-sm">
+            {% else %}
+                <span class="d-inline-flex align-items-center justify-content-center rounded-3 fw-bold text-white shadow-sm"
+                      style="width: 42px; height: 42px; background: var(--brand-color); font-size: 1.2rem;">
+                    {{ arena.name|slice:":1" }}
+                </span>
+            {% endif %}
+            <span class="fw-bold fs-5 text-dark">{{ arena.name }}</span>
+        </a>
+
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <a href="{% url 'scheduler:arena_home' arena_slug=arena.slug %}" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-2" style="font-size: 0.9rem;">
+                <i class="bi bi-arrow-left"></i> Voltar para a Agenda
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO HEADER DO ATLETA -->
+<div class="athlete-hero">
+    <div class="container">
+        <!-- SE IDENTIFICADO -->
+        <div id="heroIdentified" style="display: none;">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="athlete-avatar" id="heroAvatar">A</div>
+                    <div>
+                        <span class="badge bg-white bg-opacity-25 text-white mb-1" style="font-size: 0.75rem;">
+                            <i class="bi bi-shield-check me-1"></i> Atleta Identificado
+                        </span>
+                        <h2 class="fw-bold mb-0 text-white fs-3" id="heroPlayerName">Carregando...</h2>
+                        <span class="text-white-50 small" id="heroPlayerPhone"></span>
+                    </div>
+                </div>
+                <div class="w-100 mt-3 mt-md-0" style="max-width: 250px; position: relative; z-index: 10;">
+                    <button type="button" id="btnChangeAthlete" class="btn btn-outline-light btn-sm rounded-pill px-3 py-2 fw-semibold w-100 d-inline-flex align-items-center justify-content-center shadow-sm" style="position: relative; z-index: 10; cursor: pointer; min-height: 42px;" onclick="window.logoutPlayer()">
+                        <i class="bi bi-box-arrow-right me-2" style="pointer-events: none;"></i>
+                        <span style="pointer-events: none;">Trocar de Atleta</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SE NÃO IDENTIFICADO -->
+        <div id="heroGuest">
+            <div class="text-center py-2">
+                <span class="badge bg-white bg-opacity-25 text-white mb-2 px-3 py-1 rounded-pill" style="font-size: 0.8rem;">
+                    Área do Jogador
+                </span>
+                <h1 class="fw-bold mb-2 text-white">Meus Agendamentos</h1>
+                <p class="text-white-50 mb-0">Consulte suas reservas, gere novos pagamentos PIX e atualize seus dados.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTEÚDO PRINCIPAL -->
+<main class="container my-5 flex-grow-1">
+
+    <!-- 1. TELA DE LOGIN / IDENTIFICAÇÃO (quando não identificado) -->
+    <div id="loginView" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-5">
+                <div class="card card-custom p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm"
+                             style="width: 68px; height: 68px; background: rgba(13, 110, 253, 0.1); color: var(--brand-color); font-size: 2rem;">
+                            <i class="bi bi-person-badge"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-1">Identifique-se</h4>
+                        <p class="text-muted small">Informe os mesmos dados que você utiliza para fazer reservas na arena.</p>
+                    </div>
+
+                    <form id="formIdentifyAthlete" onsubmit="handleIdentifySubmit(event)">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary mb-1">Seu Nome Completo *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-1" id="loginName"
+                                       placeholder="Ex: Jeferson Taveira" required autocomplete="name">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary mb-1">Seu Telefone / WhatsApp *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-whatsapp"></i></span>
+                                <input type="tel" class="form-control border-start-0 ps-1" id="loginPhone"
+                                       placeholder="(00) 00000-0000" required autocomplete="tel">
+                            </div>
+                            <div class="form-text small text-muted">Usamos seu WhatsApp para localizar seu histórico de jogos.</div>
+                        </div>
+
+                        <div id="loginAlert" class="alert alert-danger py-2 small rounded-3" style="display: none;"></div>
+
+                        <button type="submit" class="btn btn-brand w-100 py-3 rounded-pill fw-bold shadow-sm" id="btnLoginSubmit">
+                            <i class="bi bi-arrow-right-circle me-1"></i> Acessar Meus Agendamentos
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-4 pt-3 border-top">
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-shield-lock me-1"></i> Seus dados são protegidos e usados apenas para a gestão das suas reservas.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. PAINEL PRINCIPAL DO ATLETA (quando identificado) -->
+    <div id="dashboardView" style="display: none;">
+
+        <!-- ABAS DE NAVEGAÇÃO -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <ul class="nav nav-pills nav-pills-custom gap-2" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="tabBookingsBtn" onclick="switchTab('bookings')">
+                        <i class="bi bi-calendar2-check me-2"></i>Minhas Reservas
+                        <span class="badge bg-white text-dark rounded-pill ms-2" id="bookingsCountBadge">0</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tabProfileBtn" onclick="switchTab('profile')">
+                        <i class="bi bi-person-gear me-2"></i>Meus Dados de Pagamento
+                    </button>
+                </li>
+            </ul>
+
+            <a href="{% url 'scheduler:arena_home' arena_slug=arena.slug %}" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                <i class="bi bi-plus-circle-fill"></i> Nova Reserva
+            </a>
+        </div>
+
+        <!-- CONTEÚDO DA ABA 1: MINHAS RESERVAS -->
+        <div id="tabBookingsContent">
+            <!-- FILTROS RÁPIDOS -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-4 pb-2">
+                <span class="filter-chip active" onclick="filterBookings('ALL', this)">Todas</span>
+                <span class="filter-chip" onclick="filterBookings('CONFIRMED', this)">
+                    <i class="bi bi-check-circle-fill text-success me-1"></i>Confirmadas
+                </span>
+                <span class="filter-chip" onclick="filterBookings('PENDING', this)">
+                    <i class="bi bi-clock-fill text-warning me-1"></i>Aguardando Pagamento
+                </span>
+                <span class="filter-chip" onclick="filterBookings('CANCELED', this)">
+                    <i class="bi bi-x-circle-fill text-danger me-1"></i>Canceladas / Histórico
+                </span>
+            </div>
+
+            <!-- SPINNER DE CARREGAMENTO -->
+            <div id="bookingsLoading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando reservas...</span>
+                </div>
+                <p class="text-muted mt-3 small fw-semibold">Buscando seus agendamentos...</p>
+            </div>
+
+            <!-- CONTAINER DE CARDS -->
+            <div id="bookingsList" class="row g-3" style="display: none;"></div>
+
+            <!-- EMPTY STATE -->
+            <div id="bookingsEmpty" class="card card-custom empty-state" style="display: none;">
+                <i class="bi bi-calendar-x mb-3"></i>
+                <h5 class="fw-bold text-dark">Nenhum agendamento encontrado</h5>
+                <p class="text-muted small mb-4" id="emptyMessage">Você ainda não possui horários agendados nesta arena.</p>
+                <div>
+                    <a href="{% url 'scheduler:arena_home' arena_slug=arena.slug %}" class="btn btn-brand rounded-pill px-4 py-2 fw-bold">
+                        <i class="bi bi-calendar-plus me-1"></i> Ver Horários Disponíveis
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO DA ABA 2: MEUS DADOS -->
+        <div id="tabProfileContent" style="display: none;">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="card card-custom p-4 p-md-5">
+                        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width: 52px; height: 52px; background: rgba(13, 110, 253, 0.1); color: var(--brand-color); font-size: 1.5rem;">
+                                <i class="bi bi-shield-lock-fill"></i>
+                            </div>
+                            <div>
+                                <h4 class="fw-bold mb-0 text-dark">Dados de Cadastro & Pagamento</h4>
+                                <p class="text-muted small mb-0">Esses dados agilizam a emissão do seu PIX e preenchem suas próximas reservas automaticamente.</p>
+                            </div>
+                        </div>
+
+                        <form id="formProfile" onsubmit="handleSaveProfile(event)">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small fw-bold text-secondary">Nome Completo *</label>
+                                    <input type="text" class="form-control" id="profileName" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small fw-bold text-secondary">Telefone / WhatsApp *</label>
+                                    <input type="tel" class="form-control" id="profilePhone" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small fw-bold text-secondary">CPF (para PIX) *</label>
+                                    <input type="text" class="form-control" id="profileCpf" placeholder="000.000.000-00">
+                                    <div class="form-text small">Exigido pelo Banco Central para cobranças PIX.</div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label small fw-bold text-secondary">E-mail (opcional)</label>
+                                    <input type="email" class="form-control" id="profileEmail" placeholder="seuemail@exemplo.com">
+                                    <div class="form-text small">Para receber confirmações e recibos.</div>
+                                </div>
+                            </div>
+
+                            <div id="profileAlert" class="alert py-2 mt-4 small rounded-3" style="display: none;"></div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                                <button type="submit" class="btn btn-brand px-4 py-2 rounded-pill fw-bold" id="btnSaveProfile">
+                                    <i class="bi bi-check-circle me-1"></i> Salvar Alterações
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="bg-dark text-white py-4 mt-auto">
+    <div class="container text-center">
+        <p class="mb-0 small text-white-50">
+            {{ arena.name }} © {% now "Y" %} • Sistema de Agendamento e Pagamentos
+        </p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/imask"></script>
+
+<script>
+    const BOOKINGS_API_URL = "{% url 'scheduler:my_bookings_ajax' arena_slug=arena.slug %}";
+    const SAVE_PROFILE_API_URL = "{% url 'scheduler:save_customer_profile_ajax' arena_slug=arena.slug %}";
+    const ARENA_HOME_URL = "{% url 'scheduler:arena_home' arena_slug=arena.slug %}";
+
+    let cachedBookings = [];
+    let currentFilter = 'ALL';
+
+    // MÁSCARAS
+    let loginPhoneMask = null;
+    let profilePhoneMask = null;
+    let profileCpfMask = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initMasks();
+        checkAthleteSession();
+
+        const btnChange = document.getElementById('btnChangeAthlete');
+        if (btnChange) {
+            btnChange.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.logoutPlayer();
+            });
+        }
+    });
+
+    window.addEventListener('pageshow', function() {
+        checkAthleteSession();
+    });
+
+    function initMasks() {
+        const lpEl = document.getElementById('loginPhone');
+        if (lpEl) loginPhoneMask = IMask(lpEl, { mask: '(00) 00000-0000' });
+
+        const ppEl = document.getElementById('profilePhone');
+        if (ppEl) profilePhoneMask = IMask(ppEl, { mask: '(00) 00000-0000' });
+
+        const pcEl = document.getElementById('profileCpf');
+        if (pcEl) profileCpfMask = IMask(pcEl, { mask: '000.000.000-00' });
+    }
+
+    const ARENA_SLUG = "{{ arena.slug }}";
+    const ATHLETE_STORAGE_KEY = 'athlete_session_' + ARENA_SLUG;
+
+    // --- GERENCIAMENTO DE PERFIL / LOCALSTORAGE ---
+    function getSavedPlayer() {
+        try {
+            const keys = [
+                ATHLETE_STORAGE_KEY,
+                'arena_athlete_' + ARENA_SLUG,
+                'athlete_session_' + ARENA_SLUG,
+                'athlete_profile'
+            ];
+            for (const key of keys) {
+                const raw = localStorage.getItem(key);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && (parsed.name || parsed.phone)) {
+                        return parsed;
+                    }
+                }
+            }
+        } catch(e) {}
+        return null;
+    }
+
+    function savePlayerLocal(data) {
+        if (!data) return;
+        try {
+            const json = JSON.stringify(data);
+            localStorage.setItem(ATHLETE_STORAGE_KEY, json);
+            localStorage.setItem('athlete_session_' + ARENA_SLUG, json);
+            localStorage.setItem('arena_athlete_' + ARENA_SLUG, json);
+            localStorage.setItem('athlete_profile', json);
+            if (data.phone) {
+                document.cookie = `last_customer_phone=${encodeURIComponent(data.phone)}; path=/; max-age=2592000`;
+            }
+        } catch(e) {}
+    }
+
+    function checkAthleteSession() {
+        const player = getSavedPlayer();
+        if (player && (player.phone || player.name)) {
+            showDashboard(player);
+        } else {
+            showLogin();
+        }
+    }
+
+    function showLogin() {
+        document.getElementById('heroIdentified').style.display = 'none';
+        document.getElementById('heroGuest').style.display = 'block';
+        document.getElementById('loginView').style.display = 'block';
+        document.getElementById('dashboardView').style.display = 'none';
+
+        const player = getSavedPlayer();
+        if (player) {
+            if (player.name) document.getElementById('loginName').value = player.name;
+            if (player.phone && loginPhoneMask) loginPhoneMask.value = player.phone;
+        }
+    }
+
+    function showDashboard(player) {
+        document.getElementById('heroGuest').style.display = 'none';
+        document.getElementById('heroIdentified').style.display = 'block';
+        document.getElementById('loginView').style.display = 'none';
+        document.getElementById('dashboardView').style.display = 'block';
+
+        const name = player.name || 'Atleta';
+        document.getElementById('heroPlayerName').innerText = name;
+        document.getElementById('heroAvatar').innerText = name.charAt(0).toUpperCase();
+        document.getElementById('heroPlayerPhone').innerText = formatPhone(player.phone);
+
+        loadBookings();
+    }
+
+    window.logoutPlayer = function() {
+        localStorage.removeItem(ATHLETE_STORAGE_KEY);
+        localStorage.removeItem('athlete_session_' + ARENA_SLUG);
+        localStorage.removeItem('arena_athlete_' + ARENA_SLUG);
+        localStorage.removeItem('athlete_profile');
+        document.cookie = 'last_customer_phone=; path=/; max-age=0';
+        showLogin();
+        const ln = document.getElementById('loginName');
+        if (ln) ln.value = '';
+        if (loginPhoneMask) loginPhoneMask.value = '';
+    };
+
+    // --- IDENTIFICAÇÃO ---
+    async function handleIdentifySubmit(e) {
+        e.preventDefault();
+        const alertBox = document.getElementById('loginAlert');
+        alertBox.style.display = 'none';
+
+        const rawName = document.getElementById('loginName').value.trim();
+        const rawPhone = document.getElementById('loginPhone').value.trim();
+        const phoneDigits = rawPhone.replace(/\D/g, '');
+
+        if (!rawName || rawName.length < 2) {
+            alertBox.innerText = 'Por favor, informe seu nome completo.';
+            alertBox.style.display = 'block';
+            return;
+        }
+
+        if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+            alertBox.innerText = 'Por favor, informe um telefone válido com DDD.';
+            alertBox.style.display = 'block';
+            return;
+        }
+
+        const btn = document.getElementById('btnLoginSubmit');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Acessando...';
+
+        try {
+            const formData = new FormData();
+            formData.append('name', rawName);
+            formData.append('phone', phoneDigits);
+
+            const csrfToken = getCookie('csrftoken') || (document.querySelector('[name=csrfmiddlewaretoken]')?.value) || '';
+            if (csrfToken) formData.append('csrfmiddlewaretoken', csrfToken);
+
+            let res = await fetch(BOOKINGS_API_URL, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            });
+
+            let data = null;
+            if (res.ok) {
+                try {
+                    data = await res.json();
+                } catch(e) {
+                    data = null;
+                }
+            }
+
+            // Fallback automático via GET garantindo 100% de funcionamento
+            if (!data || !data.success) {
+                const getUrl = `${BOOKINGS_API_URL}?phone=${encodeURIComponent(phoneDigits)}&name=${encodeURIComponent(rawName)}`;
+                const getRes = await fetch(getUrl);
+                if (getRes.ok) {
+                    data = await getRes.json();
+                }
+            }
+
+            if (data && data.success) {
+                const athleteData = {
+                    name: (data.customer?.name || rawName).toUpperCase(),
+                    phone: phoneDigits,
+                    cpf: data.customer?.cpf || '',
+                    email: data.customer?.email || ''
+                };
+                savePlayerLocal(athleteData);
+                showDashboard(athleteData);
+            } else {
+                alertBox.innerText = data?.error || 'Não foi possível acessar suas reservas.';
+                alertBox.style.display = 'block';
+            }
+        } catch(err) {
+            console.error('Erro na identificação:', err);
+            try {
+                const getUrl = `${BOOKINGS_API_URL}?phone=${encodeURIComponent(phoneDigits)}&name=${encodeURIComponent(rawName)}`;
+                const getRes = await fetch(getUrl);
+                const data = await getRes.json();
+                if (data && data.success) {
+                    const athleteData = {
+                        name: (data.customer?.name || rawName).toUpperCase(),
+                        phone: phoneDigits,
+                        cpf: data.customer?.cpf || '',
+                        email: data.customer?.email || ''
+                    };
+                    savePlayerLocal(athleteData);
+                    showDashboard(athleteData);
+                    return;
+                }
+            } catch(e) {}
+
+            alertBox.innerText = 'Erro ao conectar ao servidor. Tente novamente.';
+            alertBox.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-right-circle me-1"></i> Acessar Meus Agendamentos';
+        }
+    }
+
+    // --- CARREGAMENTO DE RESERVAS ---
+    async function loadBookings() {
+        const player = getSavedPlayer();
+        if (!player || !player.phone) return;
+
+        const loading = document.getElementById('bookingsLoading');
+        const list = document.getElementById('bookingsList');
+        const empty = document.getElementById('bookingsEmpty');
+
+        loading.style.display = 'block';
+        list.style.display = 'none';
+        empty.style.display = 'none';
+
+        try {
+            const url = `${BOOKINGS_API_URL}?phone=${encodeURIComponent(player.phone)}&name=${encodeURIComponent(player.name || '')}`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data.success) {
+                cachedBookings = data.bookings || [];
+                document.getElementById('bookingsCountBadge').innerText = cachedBookings.length;
+
+                // Atualiza perfil caso tenha vindo do backend
+                if (data.customer) {
+                    const updated = {
+                        ...player,
+                        name: data.customer.name || player.name,
+                        cpf: data.customer.cpf || player.cpf || '',
+                        email: data.customer.email || player.email || ''
+                    };
+                    savePlayerLocal(updated);
+                }
+
+                renderBookings();
+            } else {
+                empty.style.display = 'block';
+                document.getElementById('emptyMessage').innerText = data.error || 'Nenhuma reserva encontrada.';
+            }
+        } catch (err) {
+            empty.style.display = 'block';
+            document.getElementById('emptyMessage').innerText = 'Erro ao carregar reservas. Tente novamente.';
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    function renderBookings() {
+        const list = document.getElementById('bookingsList');
+        const empty = document.getElementById('bookingsEmpty');
+
+        let filtered = cachedBookings;
+        if (currentFilter === 'CONFIRMED') {
+            filtered = cachedBookings.filter(b => b.status === 'CONFIRMED');
+        } else if (currentFilter === 'PENDING') {
+            filtered = cachedBookings.filter(b => b.status === 'PENDING');
+        } else if (currentFilter === 'CANCELED') {
+            filtered = cachedBookings.filter(b => b.status === 'CANCELED' || b.status === 'NO_SHOW');
+        }
+
+        if (filtered.length === 0) {
+            list.style.display = 'none';
+            empty.style.display = 'block';
+            return;
+        }
+
+        empty.style.display = 'none';
+        list.style.display = 'flex';
+
+        list.innerHTML = filtered.map(b => {
+            const dateParts = b.date.split('/');
+            const day = dateParts[0];
+            const monthNames = ['', 'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+            const month = monthNames[parseInt(dateParts[1], 10)] || 'MES';
+
+            let statusBadge = '';
+            if (b.status === 'CONFIRMED') {
+                statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Confirmado</span>';
+            } else if (b.status === 'PENDING') {
+                statusBadge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-1 fw-bold pulse-warning"><i class="bi bi-clock-fill me-1"></i>Aguardando PIX</span>';
+            } else {
+                statusBadge = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1 fw-bold">${b.status_text}</span>`;
+            }
+
+            let actionBtn = '';
+            if (b.status === 'PENDING' && !b.is_expired && b.checkout_url) {
+                actionBtn = `<a href="${b.checkout_url}" class="btn btn-success fw-bold rounded-pill px-3 py-2 btn-sm shadow-sm d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-qr-code"></i> Pagar com PIX Agora
+                             </a>`;
+            } else if (b.status === 'CONFIRMED' && b.success_url) {
+                actionBtn = `<a href="${b.success_url}" class="btn btn-outline-primary fw-bold rounded-pill px-3 py-2 btn-sm d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-receipt"></i> Ver Comprovante
+                             </a>`;
+            }
+
+            return `
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card card-custom booking-card status-${b.status} p-3 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <!-- TOPO: DATA E STATUS -->
+                        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="date-box">
+                                    <div class="day">${day}</div>
+                                    <div class="month">${month}</div>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark text-nowrap">${b.court}</h6>
+                                    <span class="small text-muted"><i class="bi bi-clock me-1"></i>${b.time}</span>
+                                </div>
+                            </div>
+                            <div>${statusBadge}</div>
+                        </div>
+
+                        <!-- VALORES FINANCEIROS -->
+                        <div class="bg-light rounded-3 p-2 mb-3 small">
+                            <div class="d-flex justify-content-between text-secondary mb-1">
+                                <span>Valor da Quadra:</span>
+                                <strong class="text-dark">R$ ${b.total_price.toFixed(2)}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between text-secondary mb-1">
+                                <span>Total Pago:</span>
+                                <span class="fw-bold ${b.amount_paid > 0 ? 'text-success' : 'text-muted'}">R$ ${b.amount_paid.toFixed(2)}</span>
+                            </div>
+                            ${b.remaining_balance > 0 ? `
+                            <div class="d-flex justify-content-between border-top pt-1 mt-1 text-danger">
+                                <span class="fw-semibold">Saldo Restante:</span>
+                                <strong class="fw-bold">R$ ${b.remaining_balance.toFixed(2)}</strong>
+                            </div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- BOTÃO DE AÇÃO -->
+                    <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+                        <span class="small text-muted">ID #${b.id}</span>
+                        <div>${actionBtn}</div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function filterBookings(type, el) {
+        currentFilter = type;
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        if (el) el.classList.add('active');
+        renderBookings();
+    }
+
+    // --- ALTERNÂNCIA DE ABAS ---
+    function switchTab(tab) {
+        const bookingsBtn = document.getElementById('tabBookingsBtn');
+        const profileBtn = document.getElementById('tabProfileBtn');
+        const bookingsContent = document.getElementById('tabBookingsContent');
+        const profileContent = document.getElementById('tabProfileContent');
+
+        if (tab === 'profile') {
+            bookingsBtn.classList.remove('active');
+            profileBtn.classList.add('active');
+            bookingsContent.style.display = 'none';
+            profileContent.style.display = 'block';
+
+            populateProfileForm();
+        } else {
+            profileBtn.classList.remove('active');
+            bookingsBtn.classList.add('active');
+            profileContent.style.display = 'none';
+            bookingsContent.style.display = 'block';
+        }
+    }
+
+    function populateProfileForm() {
+        const player = getSavedPlayer() || {};
+        document.getElementById('profileName').value = player.name || '';
+        if (profilePhoneMask) profilePhoneMask.value = player.phone || '';
+        if (profileCpfMask) profileCpfMask.value = player.cpf || '';
+        document.getElementById('profileEmail').value = player.email || '';
+    }
+
+    // --- SALVAR PERFIL ---
+    async function handleSaveProfile(e) {
+        e.preventDefault();
+        const alertBox = document.getElementById('profileAlert');
+        alertBox.style.display = 'none';
+
+        const name = document.getElementById('profileName').value.trim();
+        const phone = document.getElementById('profilePhone').value.trim();
+        const cpf = document.getElementById('profileCpf').value.trim();
+        const email = document.getElementById('profileEmail').value.trim();
+
+        const phoneDigits = phone.replace(/\D/g, '');
+        const cpfDigits = cpf.replace(/\D/g, '');
+
+        if (!name || name.length < 2) {
+            alertBox.className = 'alert alert-danger py-2 mt-4 small rounded-3';
+            alertBox.innerText = 'Nome é obrigatório.';
+            alertBox.style.display = 'block';
+            return;
+        }
+
+        if (phoneDigits.length < 10) {
+            alertBox.className = 'alert alert-danger py-2 mt-4 small rounded-3';
+            alertBox.innerText = 'Telefone inválido.';
+            alertBox.style.display = 'block';
+            return;
+        }
+
+        if (cpfDigits && cpfDigits.length !== 11) {
+            alertBox.className = 'alert alert-danger py-2 mt-4 small rounded-3';
+            alertBox.innerText = 'CPF deve conter 11 dígitos.';
+            alertBox.style.display = 'block';
+            return;
+        }
+
+        const btn = document.getElementById('btnSaveProfile');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+        try {
+            const res = await fetch(SAVE_PROFILE_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    name: name,
+                    phone: phoneDigits,
+                    cpf: cpfDigits,
+                    email: email
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                const updated = {
+                    name: name.toUpperCase(),
+                    phone: phoneDigits,
+                    cpf: cpfDigits,
+                    email: email
+                };
+                savePlayerLocal(updated);
+
+                // Atualiza cabeçalho
+                document.getElementById('heroPlayerName').innerText = updated.name;
+                document.getElementById('heroPlayerPhone').innerText = formatPhone(updated.phone);
+
+                alertBox.className = 'alert alert-success py-2 mt-4 small rounded-3';
+                alertBox.innerText = 'Dados salvos com sucesso!';
+                alertBox.style.display = 'block';
+            } else {
+                alertBox.className = 'alert alert-danger py-2 mt-4 small rounded-3';
+                alertBox.innerText = data.error || 'Erro ao salvar dados.';
+                alertBox.style.display = 'block';
+            }
+        } catch(err) {
+            alertBox.className = 'alert alert-danger py-2 mt-4 small rounded-3';
+            alertBox.innerText = 'Erro ao salvar. Verifique sua conexão.';
+            alertBox.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Salvar Alterações';
+        }
+    }
+
+    // UTILITÁRIOS
+    function formatPhone(val) {
+        if (!val) return '';
+        const d = String(val).replace(/\D/g, '');
+        if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+        if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+        return val;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+</body>
+</html>

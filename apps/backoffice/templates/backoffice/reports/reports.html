@@ -1,0 +1,616 @@
+{% extends "backoffice/base_dashboard.html" %}
+{% load l10n %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container-fluid container-lg mt-4 mb-5" id="report-content">
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3 border-bottom pb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1">Painel Gerencial</h1>
+            <p class="text-body-secondary mb-0">Performance e métricas da {{ arena.name }}</p>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <form method="get" class="d-flex align-items-center gap-2 report-date-box p-2 px-3 rounded-pill shadow-sm" data-html2canvas-ignore="true">
+                <div class="d-flex flex-column px-2">
+                    <small class="text-uppercase text-body-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Início</small>
+                    <input type="date" name="start_date" class="form-control form-control-sm border-0 p-0 report-date-input" value="{{ start_date }}">
+                </div>
+                <div class="vr opacity-25"></div>
+                <div class="d-flex flex-column px-2">
+                    <small class="text-uppercase text-body-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Fim</small>
+                    <input type="date" name="end_date" class="form-control form-control-sm border-0 p-0 report-date-input" value="{{ end_date }}">
+                </div>
+                <button type="submit" class="btn btn-action-primary rounded-circle btn-icon ms-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" title="Filtrar Período">
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+
+            <button onclick="exportPDF()" class="btn btn-danger rounded-pill px-3 shadow-sm fw-bold d-flex align-items-center" data-html2canvas-ignore="true">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Exportar PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Cards Row -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 kpi-card kpi-total-card hover-lift position-relative overflow-hidden rounded-4">
+                <div class="card-body p-4 position-relative z-1 text-white">
+                    <div class="opacity-90 text-uppercase fw-bold small mb-2" style="letter-spacing: 0.5px;">Faturamento Total</div>
+                    <div class="display-6 fw-bold">R$ {{ financial.grand_total|add:class_mrr|floatformat:2 }}</div>
+                    <div class="mt-2 small opacity-90 fw-semibold">
+                        <i class="bi bi-graph-up-arrow me-1"></i> Receita combinada
+                    </div>
+                </div>
+                <i class="bi bi-wallet2 position-absolute text-white" style="font-size: 6.5rem; right: -20px; bottom: -20px; opacity: 0.15;"></i>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 rounded-4 kpi-card hover-lift">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="icon-box bg-success bg-opacity-15 text-success rounded-circle me-2 p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                            <i class="bi bi-calendar-check fs-5"></i>
+                        </div>
+                        <span class="text-body-secondary text-uppercase fw-bold small">Locações</span>
+                    </div>
+                    <h3 class="fw-bold mb-0">R$ {{ financial.courts|floatformat:2 }}</h3>
+                    <small class="text-body-secondary fw-semibold">{{ operational.total_bookings }} reservas realizadas</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 rounded-4 kpi-card hover-lift">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="icon-box bg-info bg-opacity-15 text-info rounded-circle me-2 p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                            <i class="bi bi-people fs-5"></i>
+                        </div>
+                        <span class="text-body-secondary text-uppercase fw-bold small">Mensalidades (Aulas)</span>
+                    </div>
+                    <h3 class="fw-bold mb-0">R$ {{ class_mrr|floatformat:2 }}</h3>
+                    <small class="text-body-secondary fw-semibold">Recorrência mensal</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 rounded-4 kpi-card hover-lift">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="icon-box bg-warning bg-opacity-15 text-warning rounded-circle me-2 p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                            <i class="bi bi-basket fs-5"></i>
+                        </div>
+                        <span class="text-body-secondary text-uppercase fw-bold small">Extras</span>
+                    </div>
+                    <h3 class="fw-bold mb-0">R$ {{ financial.equipment|floatformat:2 }}</h3>
+                    <small class="text-body-secondary fw-semibold">Bolas, Raquetes, etc.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100 rounded-4 report-card">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-graph-up me-2 text-primary"></i>Fluxo de Locações
+                    </h5>
+                    <span class="badge report-badge px-3 py-2 rounded-pill">Diário</span>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div style="height: 260px; position: relative;">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100 rounded-4 report-card">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-pie-chart me-2 text-info"></i>Fontes de Receita
+                    </h5>
+                </div>
+                <div class="card-body px-4 pb-4 d-flex align-items-center justify-content-center position-relative" style="min-height: 260px;">
+                    <div style="width: 250px; height: 230px; position: relative;">
+                        <canvas id="sourceChart"></canvas>
+                    </div>
+                    <div class="position-absolute text-center" style="pointer-events: none; transform: translateY(-16px);">
+                        <small class="text-body-secondary d-block fw-semibold" style="font-size: 0.75rem;">Total</small>
+                        <span class="fw-bold fs-5 text-body">100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance & Top Clientes -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-5">
+             <div class="card border-0 shadow-sm rounded-4 h-100 report-card">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Performance das Quadras</h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4 p-3 report-highlight-box rounded-3">
+                        <div class="me-3">
+                            <i class="bi bi-trophy-fill text-warning fs-2"></i>
+                        </div>
+                        <div>
+                            <small class="text-body-secondary text-uppercase fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">A Favorita</small>
+                            <div class="fw-bold h5 mb-0 text-body">{{ operational.popular_court }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small fw-bold text-body">Taxa de Conclusão</span>
+                            <span class="small fw-bold text-success">{{ operational.completion_rate }}%</span>
+                        </div>
+                        <div class="progress report-progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ operational.completion_rate }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3 small text-body-secondary fw-semibold">
+                        <span><i class="bi bi-x-circle me-1 text-danger"></i>{{ operational.cancel_count }} Cancelamentos</span>
+                        <span>{{ operational.cancel_rate }}% Taxa de Rejeição</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100 report-card overflow-hidden">
+                 <div class="card-header bg-transparent border-0 pt-4 px-4 pb-3">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-star-fill me-2 text-warning"></i>Top Clientes</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 report-table">
+                        <thead class="report-thead">
+                            <tr>
+                                <th class="ps-4">Nome</th>
+                                <th class="text-center">Frequência</th>
+                                <th class="text-end pe-4">Total Gasto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in top_customers %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle fw-bold rounded-circle me-3 d-flex align-items-center justify-content-center">
+                                            {{ customer.customer__name|slice:":1" }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-body">{{ customer.customer__name }}</div>
+                                            <small class="text-body-secondary">{{ customer.customer__phone }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge report-badge rounded-pill px-3 py-2">{{ customer.bookings_count }} reservas</span>
+                                </td>
+                                <td class="text-end pe-4 fw-bold text-success fs-6">
+                                    R$ {{ customer.total_spent|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center py-4 text-body-secondary">Sem dados no período</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Turmas Ativas & Extras -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 report-card overflow-hidden">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-3">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-mortarboard-fill me-2 text-primary"></i>Turmas Ativas</h6>
+                </div>
+                <div class="table-responsive p-0">
+                    <table class="table table-hover align-middle report-table mb-0">
+                        <thead class="report-thead">
+                            <tr>
+                                <th class="ps-4">Turma</th>
+                                <th class="text-center">Alunos</th>
+                                <th class="text-end pe-4">Receita Mensal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for group in class_performance %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-body">{{ group.name }}</div>
+                                    <small class="text-body-secondary" style="font-size: 0.75rem;">{{ group.teacher }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-inline-block px-2 py-1 rounded bg-info bg-opacity-15 text-info fw-bold small">
+                                        {{ group.students }} ativos
+                                    </div>
+                                </td>
+                                <td class="text-end pe-4 fw-bold text-primary fs-6">R$ {{ group.revenue|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center py-4 text-body-secondary">Nenhuma turma ativa.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+             <div class="card border-0 shadow-sm rounded-4 h-100 report-card overflow-hidden">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-3">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-bag-check-fill me-2 text-warning"></i>Extras Mais Pedidos</h6>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush report-list-group">
+                        {% for item in equipment_stats %}
+                        <li class="list-group-item px-4 py-3 d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <span class="fw-bold report-counter me-2">{{ forloop.counter }}.</span>
+                                <span class="text-body fw-semibold">{{ item.equipment__name }}</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-success fs-6">+ R$ {{ item.income|floatformat:2 }}</div>
+                                <small class="text-body-secondary fw-semibold">{{ item.qty_rented }} unidades</small>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-center py-4 text-body-secondary">Nenhum extra locado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    /* Date Filter Box */
+    .report-date-box {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .report-date-input {
+        color: var(--bs-body-color) !important;
+        font-weight: 700;
+        background: transparent !important;
+    }
+    [data-bs-theme="dark"] .report-date-box {
+        background-color: #1a1e27 !important;
+        border-color: #333a48 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+    }
+    [data-bs-theme="dark"] .report-date-input {
+        color: #ffffff !important;
+        color-scheme: dark;
+    }
+
+    /* Cards & Lift */
+    .kpi-card, .report-card {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        border-radius: var(--card-radius);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+    [data-bs-theme="dark"] .kpi-card,
+    [data-bs-theme="dark"] .report-card {
+        background-color: #171a22 !important;
+        border-color: #2d3340 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
+    }
+    [data-bs-theme="dark"] .kpi-card:hover,
+    [data-bs-theme="dark"] .report-card:hover {
+        border-color: #475569 !important;
+    }
+    [data-bs-theme="dark"] .kpi-card h3 {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .kpi-total-card {
+        background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+    }
+
+    /* Thead */
+    .report-thead th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 800;
+        font-size: 0.78rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--bs-border-color) !important;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+    [data-bs-theme="dark"] .report-thead th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-bottom: 2px solid #333a48 !important;
+        border-color: #2c323e !important;
+    }
+
+    /* Badges */
+    .report-badge {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        border: 1px solid var(--bs-border-color);
+        font-weight: 600;
+    }
+    [data-bs-theme="dark"] .report-badge {
+        background-color: #1e2229 !important;
+        color: #e2e8f0 !important;
+        border-color: #333a48 !important;
+    }
+
+    /* Tables */
+    .report-table tbody td {
+        border-color: var(--bs-border-color);
+    }
+    [data-bs-theme="dark"] .report-table tbody td {
+        border-color: #2c323e !important;
+    }
+    [data-bs-theme="dark"] .report-table.table-hover > tbody > tr:hover > * {
+        background-color: rgba(255, 255, 255, 0.04) !important;
+    }
+
+    /* Highlight box ("A Favorita") */
+    .report-highlight-box {
+        background-color: var(--bs-tertiary-bg);
+        border: 1px solid var(--bs-border-color);
+    }
+    [data-bs-theme="dark"] .report-highlight-box {
+        background-color: #1e2229 !important;
+        border-color: #333a48 !important;
+    }
+
+    /* Progress bar track */
+    [data-bs-theme="dark"] .report-progress {
+        background-color: #272c36 !important;
+    }
+
+    /* List group ("Extras Mais Pedidos") */
+    .report-list-group .list-group-item {
+        background-color: transparent !important;
+        border-bottom: 1px solid var(--bs-border-color) !important;
+        transition: background-color 0.15s ease;
+    }
+    .report-list-group .list-group-item:last-child {
+        border-bottom: 0 !important;
+    }
+    [data-bs-theme="dark"] .report-list-group .list-group-item {
+        border-color: #2c323e !important;
+    }
+    [data-bs-theme="dark"] .report-list-group .list-group-item:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+    }
+
+    /* Numbers / Counter */
+    .report-counter {
+        color: #0d6efd;
+    }
+    [data-bs-theme="dark"] .report-counter {
+        color: #38bdf8 !important;
+    }
+
+    /* Avatar */
+    .avatar-circle {
+        width: 36px;
+        height: 36px;
+        background-color: rgba(13, 110, 253, 0.12);
+        color: #0d6efd;
+    }
+    [data-bs-theme="dark"] .avatar-circle {
+        background-color: rgba(14, 165, 233, 0.18) !important;
+        color: #38bdf8 !important;
+        border: 1px solid rgba(14, 165, 233, 0.3) !important;
+    }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    let revenueChartInstance = null;
+    let sourceChartInstance = null;
+
+    function getChartThemeConfig() {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        return {
+            isDark: isDark,
+            textColor: isDark ? '#94a3b8' : '#64748b',
+            headingColor: isDark ? '#f8fafc' : '#1e293b',
+            gridColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+            lineColor: isDark ? '#38bdf8' : '#0d6efd',
+            pointBg: isDark ? '#0f172a' : '#ffffff',
+            pointBorder: isDark ? '#38bdf8' : '#0d6efd',
+            sourceColors: isDark ? ['#10b981', '#38bdf8', '#06b6d4', '#f59e0b', '#a855f7'] : ['#198754', '#0d6efd', '#0dcaf0', '#ffc107', '#6f42c1'],
+            sourceBorder: isDark ? '#171a22' : '#ffffff'
+        };
+    }
+
+    function renderReportCharts() {
+        const canvasRevenue = document.getElementById('revenueChart');
+        const canvasSource = document.getElementById('sourceChart');
+
+        if (!canvasRevenue || !canvasSource) return;
+
+        // Dados vindos do Django (JSON)
+        const dateLabels = JSON.parse('{{ chart_dates|safe }}');
+        const revenueData = JSON.parse('{{ chart_revenues|safe }}');
+        const sourceLabels = JSON.parse('{{ chart_sources_labels|safe }}');
+        const sourceData = JSON.parse('{{ chart_sources_data|safe }}');
+
+        const theme = getChartThemeConfig();
+
+        // 1. Gráfico de Linha (Receita)
+        const ctxRevenue = canvasRevenue.getContext('2d');
+        let gradient = ctxRevenue.createLinearGradient(0, 0, 0, 260);
+        if (theme.isDark) {
+            gradient.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+            gradient.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+        } else {
+            gradient.addColorStop(0, 'rgba(13, 110, 253, 0.25)');
+            gradient.addColorStop(1, 'rgba(13, 110, 253, 0.0)');
+        }
+
+        if (revenueChartInstance) {
+            revenueChartInstance.destroy();
+        }
+
+        revenueChartInstance = new Chart(ctxRevenue, {
+            type: 'line',
+            data: {
+                labels: dateLabels,
+                datasets: [{
+                    label: 'Faturamento Diário (R$)',
+                    data: revenueData,
+                    borderColor: theme.lineColor,
+                    backgroundColor: gradient,
+                    borderWidth: 2.5,
+                    pointBackgroundColor: theme.pointBg,
+                    pointBorderColor: theme.pointBorder,
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: theme.textColor,
+                            font: { weight: '600', size: 11 }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: theme.gridColor,
+                            borderDash: [5, 5]
+                        },
+                        ticks: {
+                            color: theme.textColor,
+                            font: { weight: '600', size: 11 },
+                            callback: function(value) {
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Gráfico de Rosca (Fontes)
+        const ctxSource = canvasSource.getContext('2d');
+        if (sourceChartInstance) {
+            sourceChartInstance.destroy();
+        }
+
+        sourceChartInstance = new Chart(ctxSource, {
+            type: 'doughnut',
+            data: {
+                labels: sourceLabels,
+                datasets: [{
+                    data: sourceData,
+                    backgroundColor: theme.sourceColors,
+                    borderColor: theme.sourceBorder,
+                    borderWidth: 2,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: theme.textColor,
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            padding: 16,
+                            font: { weight: '600', size: 12 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', renderReportCharts);
+    document.addEventListener('turbo:render', renderReportCharts);
+
+    // Escuta mudanças de tema em tempo real
+    const themeObserver = new MutationObserver(function(mutations) {
+        for (let mutation of mutations) {
+            if (mutation.attributeName === 'data-bs-theme') {
+                renderReportCharts();
+                break;
+            }
+        }
+    });
+    themeObserver.observe(document.documentElement, { attributes: true });
+
+    function exportPDF() {
+        const element = document.getElementById('report-content');
+        const opt = {
+            margin:       [0.3, 0.3, 0.3, 0.3],
+            filename:     'Relatorio_Arena_{{ start_date }}_ate_{{ end_date }}.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+
+        const btn = document.querySelector('button[onclick="exportPDF()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Gerando...';
+        btn.disabled = true;
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+</script>
+
+{% endblock %}

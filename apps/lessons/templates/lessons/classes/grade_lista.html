@@ -1,0 +1,162 @@
+{% extends 'backoffice/base_dashboard.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Flash message container para operações AJAX -->
+    <div id="ajax-flash-container"></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-0 fw-bold">Grade Completa</h2>
+            <p class="text-body-secondary mb-0">Todas as turmas e horários cadastrados na arena.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'lessons:aulas' arena_slug=arena.slug %}" class="btn btn-action">
+                <i class="bi bi-arrow-left me-1"></i> Voltar
+            </a>
+            <button type="button" class="btn btn-action-primary" onclick="openNewClassModal();">
+                <i class="bi bi-calendar-plus me-1"></i> Nova Turma
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center border-bottom">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2"></i>Listagem Geral</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 table-hover">
+                    <thead class="table-dark-header">
+                        <tr>
+                            <th class="d-md-none ps-3">Turmas da Grade</th>
+                            <th class="ps-4 d-none d-md-table-cell">Dia</th>
+                            <th class="d-none d-md-table-cell">Horário</th>
+                            <th class="d-none d-md-table-cell">Turma</th>
+                            <th class="d-none d-md-table-cell">Professor</th>
+                            <th class="d-none d-md-table-cell">Quadra</th>
+                            <th class="d-none d-md-table-cell">Alunos</th>
+                            <th class="text-end pe-4 d-none d-md-table-cell" style="min-width: 100px;">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in schedules %}
+                        <tr class="cursor-pointer hover-bg-light transition-all" onclick="window.location.href='{% url 'lessons:class_detail' arena_slug=arena.slug pk=item.class_group.pk %}'">
+                            
+                            <!-- VISÃO MOBILE -->
+                            <td class="d-md-none p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <div class="fw-bold text-primary mb-1">
+                                            {{ item.get_day_of_week_display }}
+                                        </div>
+                                        <div class="fw-bold text-body">
+                                            <i class="bi bi-clock me-1 text-muted"></i> {{ item.start_time|time:"H:i" }} - {{ item.end_time|time:"H:i" }}
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        {% if item.class_group.teacher %}
+                                            <div class="badge bg-secondary-subtle text-secondary border rounded-pill">
+                                                <i class="bi bi-person-badge me-1"></i> {{ item.class_group.teacher.name|truncatechars:15 }}
+                                            </div>
+                                        {% else %}
+                                            <div class="badge bg-light text-secondary border rounded-pill fst-italic">
+                                                Sem prof.
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="fw-bold text-body fs-6">{{ item.class_group.name }}</div>
+                                <small class="text-body-secondary d-block mt-1">
+                                    <i class="bi bi-geo-alt me-1"></i> {{ item.class_group.court.name|default:"Quadra não definida" }}
+                                </small>
+                            </td>
+
+                            <!-- VISÃO DESKTOP -->
+                            <td class="ps-4 fw-bold text-primary d-none d-md-table-cell">
+                                {{ item.get_day_of_week_display }}
+                            </td>
+
+                            <td class="fw-bold text-body d-none d-md-table-cell">
+                                {{ item.start_time|time:"H:i" }} - {{ item.end_time|time:"H:i" }}
+                            </td>
+
+                            <td class="d-none d-md-table-cell">
+                                <span class="fw-bold text-body">{{ item.class_group.name }}</span><br>
+                                <small class="text-body-secondary">{{ item.class_group.description|truncatechars:30 }}</small>
+                            </td>
+
+                            <td class="d-none d-md-table-cell">
+                                {% if item.class_group.teacher %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle text-white d-flex justify-content-center align-items-center me-2 flex-shrink-0"
+                                             style="width: 30px; height: 30px; font-size: 0.8rem; background-color: {{ item.class_group.teacher.color }} !important;">
+                                            {{ item.class_group.teacher.name|slice:":1" }}
+                                        </div>
+                                        <span class="text-body">{{ item.class_group.teacher.name }}</span>
+                                    </div>
+                                {% else %}
+                                    <span class="text-body-secondary fst-italic">Sem professor</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="d-none d-md-table-cell">
+                                <span class="badge bg-secondary-subtle text-body border">
+                                    {{ item.class_group.court.name|default:"Não definida" }}
+                                </span>
+                            </td>
+
+                            <td class="d-none d-md-table-cell">
+                                <span class="badge bg-secondary-subtle text-body border rounded-pill">
+                                    {{ item.class_group.active_students_count }} / {{ item.class_group.max_students }}
+                                </span>
+                            </td>
+
+                            <td class="text-end pe-4 d-none d-md-table-cell" onclick="event.stopPropagation();">
+                                <div class="d-inline-flex gap-1">
+                                    <a href="{% url 'lessons:class_update' arena_slug=arena.slug pk=item.class_group.pk %}" class="btn btn-sm btn-action" title="Editar Turma">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+                                    <button type="button" class="btn btn-sm btn-action-danger" title="Excluir Turma"
+                                            data-id="{{ item.class_group.pk }}"
+                                            data-name="{{ item.class_group.name|escape }}"
+                                            data-students="{{ item.class_group.active_students_count }}"
+                                            data-url="{% url 'lessons:class_delete' arena_slug=arena.slug pk=item.class_group.pk %}"
+                                            onclick="openDeleteClassModal(this);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-body-secondary">
+                                <i class="bi bi-calendar-x fs-1 mb-2 d-block"></i>
+                                Nenhuma turma ativa encontrada na grade.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% include 'lessons/modals/_class_modal.html' %}
+
+<style>
+    .table-dark-header th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 600;
+        border-bottom: 2px solid var(--bs-border-color);
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+</style>
+{% endblock %}

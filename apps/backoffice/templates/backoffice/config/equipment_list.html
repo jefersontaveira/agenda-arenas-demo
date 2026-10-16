@@ -1,0 +1,721 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <!-- Flash message container para operações AJAX -->
+    <div id="ajax-flash-container"></div>
+
+    <!-- Cabeçalho Principal -->
+    <div class="d-flex justify-content-between flex-wrap align-items-center pt-2 pb-3 mb-4 border-bottom gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'backoffice:arena_config' arena_slug=arena.slug %}" class="btn btn-sm btn-action rounded-circle d-inline-flex align-items-center justify-content-center p-0" style="width: 34px; height: 34px;" title="Voltar para Configurações">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h2 mb-0">Equipamentos & Estoque</h1>
+            </div>
+            <p class="text-body-secondary small mb-0 ms-md-4 ps-md-2">
+                Gerencie materiais esportivos, raquetes, bolas e acessórios disponíveis na sua arena.
+            </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-action-primary rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" onclick="openNewEquipmentModal();">
+                <i class="bi bi-plus-lg"></i>
+                <span>Novo Equipamento</span>
+            </button>
+        </div>
+    </div>
+
+    {% if equipments %}
+        <!-- ==========================================
+             VISUALIZAÇÃO DESKTOP: TABELA (>= 768px)
+             ========================================== -->
+        <div class="card shadow-sm border-0 overflow-hidden d-none d-md-block mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="equipment-thead">
+                            <tr>
+                                <th class="ps-4" style="width: 28%;">Item / Equipamento</th>
+                                <th style="width: 16%;">Estoque Total</th>
+                                <th style="width: 16%;">Preço Aluguel</th>
+                                <th style="width: 22%;">Modalidades Compatíveis</th>
+                                <th style="width: 10%;">Status</th>
+                                <th class="text-end pe-4" style="width: 8%;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in equipments %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="equipment-icon-box">
+                                            <i class="bi bi-box-seam text-warning fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-body fs-6 d-block">{{ item.name }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-body border rounded-pill px-3 py-2 fw-semibold">
+                                        <i class="bi bi-stack me-1 opacity-75"></i> {{ item.total_quantity }} un
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if item.rental_price > 0 %}
+                                        <span class="fw-bold text-body">
+                                            R$ {{ item.rental_price|floatformat:2 }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold">
+                                            GRÁTIS
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for mod in item.modalities.all %}
+                                            <span class="badge bg-secondary-subtle text-body border rounded-pill px-2 py-1 small">
+                                                {{ mod.emoji|default:"🏐" }} {{ mod.name }}
+                                            </span>
+                                        {% empty %}
+                                            <span class="text-body-secondary small fst-italic">Geral / Todas</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if item.is_active %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-semibold">
+                                            <i class="bi bi-check-circle me-1"></i> Ativo
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill fw-semibold">
+                                            <i class="bi bi-x-circle me-1"></i> Inativo
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-inline-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-action"
+                                                data-id="{{ item.id }}"
+                                                data-name="{{ item.name }}"
+                                                data-total-quantity="{{ item.total_quantity }}"
+                                                data-rental-price="{{ item.rental_price|stringformat:'.2f' }}"
+                                                data-modalities="[{% for mod in item.modalities.all %}{{ mod.id }}{% if not forloop.last %},{% endif %}{% endfor %}]"
+                                                data-is-active="{% if item.is_active %}true{% else %}false{% endif %}"
+                                                data-url="{% url 'backoffice:equipment_edit' arena_slug=arena.slug pk=item.id %}"
+                                                onclick="openEditEquipmentModal(this);"
+                                                title="Editar equipamento">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-action-danger"
+                                                data-id="{{ item.id }}"
+                                                data-name="{{ item.name }}"
+                                                data-url="{% url 'backoffice:equipment_delete' arena_slug=arena.slug pk=item.id %}"
+                                                onclick="openDeleteEquipmentModal(this);"
+                                                title="Excluir equipamento">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             VISUALIZAÇÃO MOBILE: CARDS (< 768px)
+             ========================================== -->
+        <div class="d-md-none mb-4">
+            <div class="d-flex flex-column gap-3">
+                {% for item in equipments %}
+                <div class="card shadow-sm border-0 {% if item.is_active %}border-start border-4 border-success{% else %}border-start border-4 border-danger{% endif %}">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="equipment-icon-box" style="width: 32px; height: 32px; min-width: 32px;">
+                                    <i class="bi bi-box-seam text-warning"></i>
+                                </div>
+                                <h6 class="fw-bold mb-0 text-body fs-6">{{ item.name }}</h6>
+                            </div>
+                            {% if item.is_active %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill small fw-semibold">
+                                    Ativo
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-pill small fw-semibold">
+                                    Inativo
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="row g-2 my-2 py-2 border-top border-bottom">
+                            <div class="col-6">
+                                <span class="text-body-secondary small d-block">Estoque</span>
+                                <span class="fw-semibold text-body">
+                                    <i class="bi bi-stack me-1 opacity-75"></i>{{ item.total_quantity }} un
+                                </span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-body-secondary small d-block">Aluguel</span>
+                                {% if item.rental_price > 0 %}
+                                    <span class="fw-bold text-body">R$ {{ item.rental_price|floatformat:2 }}</span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill small fw-bold">
+                                        GRÁTIS
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 pt-1">
+                                <span class="text-body-secondary small d-block mb-1">Modalidades:</span>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for mod in item.modalities.all %}
+                                        <span class="badge bg-secondary-subtle text-body border rounded-pill px-2 py-1 small">
+                                            {{ mod.emoji|default:"🏐" }} {{ mod.name }}
+                                        </span>
+                                    {% empty %}
+                                        <span class="text-body-secondary small fst-italic">Geral / Todas</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 pt-1">
+                            <button type="button" class="btn btn-sm btn-action px-3 py-1 fw-semibold"
+                                    data-id="{{ item.id }}"
+                                    data-name="{{ item.name }}"
+                                    data-total-quantity="{{ item.total_quantity }}"
+                                    data-rental-price="{{ item.rental_price|stringformat:'.2f' }}"
+                                    data-modalities="[{% for mod in item.modalities.all %}{{ mod.id }}{% if not forloop.last %},{% endif %}{% endfor %}]"
+                                    data-is-active="{% if item.is_active %}true{% else %}false{% endif %}"
+                                    data-url="{% url 'backoffice:equipment_edit' arena_slug=arena.slug pk=item.id %}"
+                                    onclick="openEditEquipmentModal(this);">
+                                <i class="bi bi-pencil me-1"></i> Editar
+                            </button>
+                            <button type="button" class="btn btn-sm btn-action-danger px-3 py-1 fw-semibold"
+                                    data-id="{{ item.id }}"
+                                    data-name="{{ item.name }}"
+                                    data-url="{% url 'backoffice:equipment_delete' arena_slug=arena.slug pk=item.id %}"
+                                    onclick="openDeleteEquipmentModal(this);">
+                                <i class="bi bi-trash3 me-1"></i> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    {% else %}
+        <!-- Estado Vazio -->
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5 text-center text-body-secondary">
+                <div class="equipment-empty-icon mx-auto mb-3">
+                    <i class="bi bi-box-seam fs-1 text-warning"></i>
+                </div>
+                <h4 class="fw-bold text-body mb-2">Nenhum equipamento cadastrado</h4>
+                <p class="mb-4 text-body-secondary" style="max-width: 480px; margin: 0 auto;">
+                    Cadastre bolas, raquetes, coletes ou acessórios para alugar ou emprestar aos seus clientes durante as partidas.
+                </p>
+                <button type="button" class="btn btn-action-primary px-4 py-2 fw-semibold" onclick="openNewEquipmentModal();">
+                    <i class="bi bi-plus-lg me-1"></i> Cadastrar Primeiro Equipamento
+                </button>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CADASTRAR / EDITAR EQUIPAMENTO
+     ======================================================= -->
+<div class="modal fade" id="equipmentModal" tabindex="-1" aria-labelledby="equipmentModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-box-seam fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="equipmentModalTitle">Novo Equipamento</h5>
+                        <small class="text-body-secondary" id="equipmentModalSubtitle">Cadastre um equipamento para aluguel ou empréstimo.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="equipmentForm" method="post" novalidate>
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="equipmentFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <div class="row g-3">
+                        <!-- Nome do Equipamento -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-1" for="id_equipment_name">
+                                Nome do Equipamento <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="id_equipment_name" class="form-control" placeholder="Ex: Bola de Beach Tennis, Raquete de Padel, Colete..." required>
+                            <div class="invalid-feedback small" id="err-name"></div>
+                        </div>
+
+                        <!-- Quantidade Total -->
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_equipment_total_quantity">
+                                Quantidade Total em Estoque <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary"><i class="bi bi-stack"></i></span>
+                                <input type="number" name="total_quantity" id="id_equipment_total_quantity" class="form-control" min="0" value="1" required>
+                                <span class="input-group-text bg-body-tertiary">un</span>
+                            </div>
+                            <small class="text-body-secondary" style="font-size: 0.75rem;">Total de unidades físicas disponíveis na arena.</small>
+                            <div class="invalid-feedback small" id="err-total_quantity"></div>
+                        </div>
+
+                        <!-- Preço de Aluguel -->
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_equipment_rental_price">
+                                Preço de Aluguel
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary">R$</span>
+                                <input type="number" name="rental_price" id="id_equipment_rental_price" class="form-control" step="0.50" min="0" value="0.00">
+                            </div>
+                            <small class="text-body-secondary" style="font-size: 0.75rem;">Deixe 0,00 para aluguel ou empréstimo gratuito.</small>
+                            <div class="invalid-feedback small" id="err-rental_price"></div>
+                        </div>
+
+                        <!-- Modalidades Compatíveis (Isoladas pela Arena) -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-1 d-block">
+                                Modalidades Compatíveis
+                            </label>
+                            <p class="text-body-secondary small mb-2" style="font-size: 0.8rem;">
+                                Selecione quais esportes da arena podem utilizar este equipamento. Se nenhum for selecionado, estará disponível para uso geral em qualquer quadra.
+                            </p>
+                            
+                            <div class="d-flex flex-wrap gap-2 pt-1" id="modalitiesPillGroup">
+                                {% for mod in all_modalities %}
+                                <div class="form-check p-0 m-0">
+                                    <input type="checkbox" class="btn-check modality-pill-check" name="modalities" id="mod_pill_{{ mod.id }}" value="{{ mod.id }}" autocomplete="off">
+                                    <label class="btn btn-action btn-sm rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1 cursor-pointer" for="mod_pill_{{ mod.id }}">
+                                        <span>{{ mod.emoji|default:"🏐" }}</span>
+                                        <span>{{ mod.name }}</span>
+                                    </label>
+                                </div>
+                                {% empty %}
+                                <div class="alert alert-secondary py-2 px-3 small w-100 mb-0">
+                                    <i class="bi bi-info-circle me-1"></i> Nenhuma modalidade cadastrada na arena ainda. O equipamento será considerado de uso geral.
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="invalid-feedback small" id="err-modalities"></div>
+                        </div>
+
+                        <!-- Switch: Ativo / Inativo -->
+                        <div class="col-12">
+                            <div class="p-3 rounded-3 border bg-body-tertiary">
+                                <div class="form-check form-switch m-0 d-flex align-items-center">
+                                    <input class="form-check-input me-3 fs-5" type="checkbox" role="switch" name="is_active" id="id_equipment_is_active" checked>
+                                    <div>
+                                        <label class="form-check-label fw-bold mb-0 text-body cursor-pointer" for="id_equipment_is_active" id="label_equipment_is_active">
+                                            Item Disponível para Aluguel
+                                        </label>
+                                        <small class="text-body-secondary d-block mt-1">
+                                            Desmarque caso o equipamento esteja quebrado, perdido ou em manutenção.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4 fw-bold" id="btnSubmitEquipment">
+                        <span class="btn-text">Salvar Equipamento</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAÇÃO DE EXCLUSÃO DE EQUIPAMENTO
+     ======================================================= -->
+<div class="modal fade" id="deleteEquipmentModal" tabindex="-1" aria-labelledby="deleteEquipmentModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="delete-icon-circle mx-auto mb-3">
+                    <i class="bi bi-trash3-fill fs-2 text-danger"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="deleteEquipmentModalTitle">Excluir Equipamento</h4>
+                <p class="lead mb-2 fs-6">
+                    Tem certeza que deseja excluir o item <strong id="deleteEquipmentNameText" class="text-body"></strong>?
+                </p>
+                <p class="text-body-secondary small mb-4">
+                    Esta ação não pode ser desfeita e removerá o item do controle de estoque da sua arena.
+                </p>
+
+                <form id="deleteEquipmentForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-danger px-4 fw-bold" id="btnConfirmDeleteEquipment">
+                            <i class="bi bi-trash3 me-1"></i> Sim, Excluir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // URL de criação padrão
+    const URL_EQUIPMENT_CREATE = "{% url 'backoffice:equipment_add' arena_slug=arena.slug %}";
+
+    let equipmentModalInstance = null;
+    let deleteEquipmentModalInstance = null;
+
+    function getEquipmentModal() {
+        const el = document.getElementById('equipmentModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getDeleteEquipmentModal() {
+        const el = document.getElementById('deleteEquipmentModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function clearFormErrors() {
+        const alertBox = document.getElementById('equipmentFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+        const inputs = document.querySelectorAll('#equipmentForm .form-control');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+
+        const feedbacks = document.querySelectorAll('#equipmentForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    function uncheckAllModalities() {
+        const checks = document.querySelectorAll('.modality-pill-check');
+        checks.forEach(c => c.checked = false);
+    }
+
+    // Abertura do Modal de Novo Equipamento
+    function openNewEquipmentModal() {
+        const form = document.getElementById('equipmentForm');
+        if (!form) return;
+        form.reset();
+        clearFormErrors();
+        uncheckAllModalities();
+
+        form.action = URL_EQUIPMENT_CREATE;
+
+        document.getElementById('equipmentModalTitle').textContent = "Novo Equipamento";
+        document.getElementById('equipmentModalSubtitle').textContent = "Cadastre um equipamento para aluguel ou empréstimo.";
+        document.getElementById('btnSubmitEquipment').querySelector('.btn-text').textContent = "Cadastrar Equipamento";
+
+        document.getElementById('id_equipment_name').value = '';
+        document.getElementById('id_equipment_total_quantity').value = '1';
+        document.getElementById('id_equipment_rental_price').value = '0.00';
+        document.getElementById('id_equipment_is_active').checked = true;
+
+        const modal = getEquipmentModal();
+        if (modal) modal.show();
+    }
+
+    // Abertura do Modal de Edição de Equipamento
+    function openEditEquipmentModal(btn) {
+        if (!btn) return;
+        const form = document.getElementById('equipmentForm');
+        if (!form) return;
+        form.reset();
+        clearFormErrors();
+        uncheckAllModalities();
+
+        const id = btn.getAttribute('data-id') || '';
+        const name = btn.getAttribute('data-name') || '';
+        const totalQuantity = btn.getAttribute('data-total-quantity') || '0';
+        const rentalPrice = btn.getAttribute('data-rental-price') || '0.00';
+        const isActive = btn.getAttribute('data-is-active') === 'true';
+        const url = btn.getAttribute('data-url') || '';
+
+        let modalities = [];
+        try {
+            const rawModalities = btn.getAttribute('data-modalities');
+            modalities = rawModalities ? JSON.parse(rawModalities) : [];
+        } catch (e) {
+            console.error("Erro ao converter modalidades", e);
+        }
+
+        form.action = url;
+
+        document.getElementById('equipmentModalTitle').textContent = "Editar Equipamento";
+        document.getElementById('equipmentModalSubtitle').textContent = `Editando cadastro de ${name}`;
+        document.getElementById('btnSubmitEquipment').querySelector('.btn-text').textContent = "Salvar Alterações";
+
+        document.getElementById('id_equipment_name').value = name;
+        document.getElementById('id_equipment_total_quantity').value = totalQuantity;
+        document.getElementById('id_equipment_rental_price').value = rentalPrice;
+        document.getElementById('id_equipment_is_active').checked = isActive;
+
+        // Marca as modalidades compatíveis
+        modalities.forEach(modId => {
+            const chk = document.getElementById(`mod_pill_${modId}`);
+            if (chk) chk.checked = true;
+        });
+
+        const modal = getEquipmentModal();
+        if (modal) modal.show();
+    }
+
+    // Abertura do Modal de Confirmação de Exclusão
+    function openDeleteEquipmentModal(btn) {
+        if (!btn) return;
+        const form = document.getElementById('deleteEquipmentForm');
+        if (!form) return;
+
+        const name = btn.getAttribute('data-name') || '';
+        const url = btn.getAttribute('data-url') || '';
+
+        form.action = url;
+        document.getElementById('deleteEquipmentNameText').textContent = name;
+
+        const modal = getDeleteEquipmentModal();
+        if (modal) modal.show();
+    }
+
+    // Flash notification ao recarregar a tela
+    function initEquipmentList() {
+        const savedFlash = sessionStorage.getItem('equipment_flash_msg');
+        if (savedFlash) {
+            sessionStorage.removeItem('equipment_flash_msg');
+            const flashContainer = document.getElementById('ajax-flash-container');
+            if (flashContainer) {
+                flashContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> ${savedFlash}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", initEquipmentList);
+    document.addEventListener("turbo:render", initEquipmentList);
+
+    // Manipuladores de Envio AJAX
+    document.addEventListener("submit", async function(e) {
+        // 1. Formulário de Cadastro/Edição de Equipamento
+        if (e.target && e.target.id === 'equipmentForm') {
+            e.preventDefault();
+            const form = e.target;
+            clearFormErrors();
+
+            const submitBtn = document.getElementById('btnSubmitEquipment');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getEquipmentModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('equipment_flash_msg', data.message || 'Equipamento salvo com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('equipmentFormAlert');
+                    alertBox.classList.remove('d-none');
+
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.querySelector(`[name="${field}"]`);
+                            const feedback = document.getElementById(`err-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Ocorreu um erro ao salvar o equipamento. Verifique os dados inseridos.');
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                const alertBox = document.getElementById('equipmentFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // 2. Formulário de Exclusão de Equipamento
+        if (e.target && e.target.id === 'deleteEquipmentForm') {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('btnConfirmDeleteEquipment');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Excluindo...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getDeleteEquipmentModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('equipment_flash_msg', data.message || 'Equipamento excluído com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Erro ao excluir equipamento.');
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                alert('Erro de conexão ao excluir equipamento.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    });
+</script>
+
+<style>
+    /* Cabeçalho da Tabela */
+    .equipment-thead th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 700;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--bs-border-color);
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+    [data-bs-theme="dark"] .equipment-thead th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-color: #2c323e !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+
+    /* Ícones das linhas */
+    .equipment-icon-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background-color: rgba(255, 193, 7, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Ícone de Estado Vazio */
+    .equipment-empty-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background-color: rgba(255, 193, 7, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Badges e Ícones dos Modais */
+    .modal-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background-color: rgba(255, 193, 7, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .delete-icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: rgba(220, 53, 69, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Estilização dos Pills de Modalidades Selecionáveis */
+    .modality-pill-check:checked + label {
+        background-color: #f59e0b !important;
+        border-color: #d97706 !important;
+        color: #0f172a !important;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+    }
+    [data-bs-theme="dark"] .modality-pill-check:checked + label {
+        background-color: #f59e0b !important;
+        border-color: #f59e0b !important;
+        color: #0f172a !important;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+    }
+
+    /* Tema Escuro para Modais */
+    [data-bs-theme="dark"] .modal-content {
+        background-color: #1a1d22 !important;
+        border: 1px solid #2d3340 !important;
+    }
+    [data-bs-theme="dark"] .modal-header,
+    [data-bs-theme="dark"] .modal-footer {
+        border-color: #2d3340 !important;
+    }
+</style>
+{% endblock %}

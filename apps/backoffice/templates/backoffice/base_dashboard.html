@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="turbo-prefetch" content="false">
+    <title>{% block title %}Gestão da Arena{% endblock %}</title>
+
+    <!-- Pre-hydration para evitar piscada (FOUC) de tema ou largura da sidebar -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('app_theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            if (localStorage.getItem('sidebar_collapsed') === 'true') {
+                document.documentElement.classList.add('sidebar-collapsed-preload');
+            }
+        })();
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://unpkg.com/@hotwired/turbo@8.0.4/dist/turbo.es2017-umd.js" defer></script>
+
+    <script defer>
+        // Usamos Delegação de Eventos para que funcione perfeitamente com o Turbo Drive (SPA)
+        // O Turbo preserva o head, então listeners diretos aqui rodam apenas uma vez.
+        document.addEventListener("click", function (e) {
+            // 1. Toggle Sidebar Desktop
+            const logoToggle = e.target.closest('#logo-toggle');
+            if (logoToggle) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.classList.toggle('collapsed');
+                    localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+                }
+            }
+
+            // 2. Toggle Sidebar Mobile / Tablet
+            const mobileToggle = e.target.closest('#mobile-sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (mobileToggle) {
+                if (sidebar) sidebar.classList.toggle('show');
+                if (backdrop) backdrop.classList.toggle('show');
+            } else if (e.target.closest('#sidebar-backdrop') || (sidebar && sidebar.classList.contains('show') && e.target.closest('.sidebar-menu a'))) {
+                if (sidebar) sidebar.classList.remove('show');
+                if (backdrop) backdrop.classList.remove('show');
+            }
+
+            // 3. Toggle Dark Mode
+            const themeToggleBtn = e.target.closest('#theme-toggle');
+            if (themeToggleBtn) {
+                const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(newTheme);
+            }
+        });
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('app_theme', theme);
+            
+            const themeIcon = document.getElementById('theme-icon');
+            if (themeIcon) {
+                if (theme === 'dark') {
+                    themeIcon.classList.remove('bi-moon-fill');
+                    themeIcon.classList.add('bi-sun-fill', 'text-warning');
+                } else {
+                    themeIcon.classList.remove('bi-sun-fill', 'text-warning');
+                    themeIcon.classList.add('bi-moon-fill');
+                }
+            }
+        }
+
+        // Função de inicialização do estado visual (Roda no carregamento inicial e a cada navegação do Turbo)
+        function initVisualState() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && localStorage.getItem('sidebar_collapsed') === 'true') {
+                sidebar.classList.add('collapsed');
+            }
+            document.documentElement.classList.remove('sidebar-collapsed-preload');
+            
+            const savedTheme = localStorage.getItem('app_theme') || 'light';
+            applyTheme(savedTheme);
+        }
+
+        // Inicializa no primeiro carregamento e nas navegações
+        document.addEventListener("DOMContentLoaded", initVisualState);
+        document.addEventListener("turbo:render", initVisualState);
+    </script>
+
+    <style>
+        :root {
+            --brand-color: #FFC107; /* Amarelo Arena Rei */
+            --brand-dark: #1a1d21;  /* Preto/Cinza Escuro */
+            --brand-light: #f8f9fa; /* Fundo claro */
+            --card-radius: 14px;
+            --sidebar-width: 260px;
+            --sidebar-collapsed-width: 80px;
+        }
+
+        [data-bs-theme="light"] {
+            color-scheme: light;
+            --bs-body-bg: #f8f9fa;
+            --bs-card-bg: #ffffff;
+            --bs-border-color: #e9ecef;
+            --bs-tertiary-bg: #f1f3f5;
+        }
+
+        [data-bs-theme="dark"] {
+            color-scheme: dark;
+            --brand-dark: #121417;
+            --bs-body-bg: #121417;
+            --bs-body-color: #e2e8f0;
+            --bs-heading-color: #f8fafc;
+            --bs-secondary-color: #94a3b8;
+            --bs-tertiary-bg: #1a1d22;
+            --bs-secondary-bg: #16181c;
+            --bs-card-bg: #181b20;
+            --bs-border-color: #272c34;
+            --bs-border-color-translucent: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+
+        /* =========================================
+           SIDEBAR CLEAN REBUILD (FIXA NA TELA)
+           ========================================= */
+        .sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            height: 100vh;
+            height: 100dvh;
+            max-height: 100dvh;
+            background-color: var(--brand-dark);
+            color: white;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 1000;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+            min-width: var(--sidebar-collapsed-width);
+        }
+
+        /* Oculta textos quando recolhido */
+        .sidebar.collapsed .sidebar-text {
+            display: none !important;
+        }
+
+        /* Header da Sidebar (Logo) */
+        .sidebar-header {
+            height: 70px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            cursor: pointer;
+            overflow: hidden;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        /* Botão de Agendamento / Ver Site */
+        .sidebar-btn-container {
+            flex-shrink: 0;
+            padding: 0 16px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        
+        .sidebar.collapsed .sidebar-btn-container {
+            padding: 0 16px;
+        }
+
+        .btn-agendamento {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 44px;
+            border-radius: 22px;
+            width: 100%;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            border: 1.5px solid #FFC107 !important;
+            color: #FFC107 !important;
+            background-color: rgba(255, 193, 7, 0.1);
+            font-weight: 700;
+        }
+        .btn-agendamento:hover {
+            background-color: #FFC107 !important;
+            color: #111315 !important;
+            border-color: #FFC107 !important;
+            box-shadow: 0 4px 18px rgba(255, 193, 7, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        /* Links do Menu com Rolagem Suave e Inercial */
+        .sidebar-menu {
+            flex: 1 1 0%;
+            min-height: 0; /* CRUCIAL: Permite que o container flex encolha e ative o scroll */
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            padding: 4px 16px 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 193, 7, 0.4) transparent;
+        }
+
+        .sidebar-menu::-webkit-scrollbar {
+            width: 5px;
+        }
+        .sidebar-menu::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar-menu::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        .sidebar-menu::-webkit-scrollbar-thumb:hover {
+            background-color: #FFC107;
+        }
+
+        .sidebar .nav-link {
+            color: #d1d5db; /* Alto contraste com fundo escuro */
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            padding: 11px 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar .nav-link .nav-icon {
+            color: #9ca3af;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .sidebar .nav-link:hover {
+            color: #ffffff !important;
+            background-color: rgba(255,255,255, 0.12) !important;
+            transform: translateX(4px);
+        }
+
+        .sidebar .nav-link:hover .nav-icon {
+            color: var(--brand-color);
+            transform: scale(1.15);
+        }
+
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, #FFC107 0%, #ffb300 100%) !important;
+            color: #111315 !important;
+            font-weight: 700;
+            box-shadow: 0 4px 18px rgba(255, 193, 7, 0.45);
+        }
+        
+        .sidebar .nav-link.active .nav-icon {
+            color: #111315 !important;
+        }
+
+        .nav-icon {
+            width: 24px;
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-right: 16px;
+            transition: margin 0.3s;
+        }
+
+        .sidebar.collapsed .nav-icon {
+            margin-right: 0;
+        }
+        
+        .sidebar.collapsed .nav-link {
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        /* Rodapé do usuário */
+        .sidebar-footer {
+            flex-shrink: 0;
+            padding: 14px 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background-color: var(--brand-dark);
+            position: relative;
+            z-index: 10;
+        }
+
+        .user-dropdown-toggle {
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .sidebar.collapsed .user-dropdown-toggle {
+            justify-content: center;
+        }
+
+        .user-dropdown-toggle::after {
+            margin-left: auto;
+        }
+
+        .sidebar.collapsed .user-dropdown-toggle::after {
+            display: none !important;
+        }
+
+        .sidebar.collapsed .dropdown-menu {
+            position: absolute !important;
+            inset: auto auto 0px 100% !important; 
+            transform: translate3d(10px, 0px, 0px) !important; 
+        }
+
+        /* --- CONTEÚDO PRINCIPAL (COM MARGEM DA SIDEBAR FIXA) --- */
+        .content {
+            flex-grow: 1;
+            min-height: 100vh;
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            max-width: calc(100% - var(--sidebar-width));
+            padding: 30px;
+            background-color: var(--bs-body-bg);
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Quando a sidebar estiver recolhida */
+        .sidebar.collapsed ~ .content {
+            margin-left: var(--sidebar-collapsed-width);
+            width: calc(100% - var(--sidebar-collapsed-width));
+            max-width: calc(100% - var(--sidebar-collapsed-width));
+        }
+
+        /* Preload imediato */
+        html.sidebar-collapsed-preload .sidebar {
+            width: var(--sidebar-collapsed-width) !important;
+            min-width: var(--sidebar-collapsed-width) !important;
+        }
+        html.sidebar-collapsed-preload .sidebar ~ .content {
+            margin-left: var(--sidebar-collapsed-width) !important;
+            width: calc(100% - var(--sidebar-collapsed-width)) !important;
+            max-width: calc(100% - var(--sidebar-collapsed-width)) !important;
+        }
+
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                z-index: 1050;
+                width: 280px;
+                max-width: 85vw;
+                height: 100vh;
+                height: 100dvh;
+                max-height: 100dvh;
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 15px;
+            }
+        }
+
+        /* Backdrop para fechar a sidebar no mobile/tablet */
+        .sidebar-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(2px);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .sidebar-backdrop.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* --- BOTÕES DE AÇÃO PADRONIZADOS (ESTILO PROFESSORES) --- */
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            border: 1.5px solid var(--bs-border-color);
+            background-color: var(--bs-card-bg);
+            color: var(--bs-body-color);
+            text-decoration: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-action:hover, .btn-action:focus-visible {
+            border-color: #334155 !important;
+            color: #0f172a !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+            background-color: #f1f5f9 !important;
+        }
+        .btn-action.active {
+            border-color: #0f172a !important;
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
+            font-weight: 700;
+        }
+
+        .btn-action-primary, .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 18px;
+            font-size: 0.9rem;
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+            color: #111315 !important;
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+            white-space: nowrap;
+        }
+        .btn-action-primary:hover, .btn-primary:hover {
+            background-color: #ffca2c !important;
+            border-color: #ffca2c !important;
+            color: #000000 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(255, 193, 7, 0.45);
+        }
+
+        .btn-action-danger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: 1.5px solid rgba(220, 53, 69, 0.35);
+            background-color: transparent;
+            color: #dc3545;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn-action-danger:hover {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+        [data-bs-theme="dark"] .btn-action {
+            border-color: #3b4252 !important;
+            background-color: rgba(255, 255, 255, 0.03);
+            color: #e2e8f0;
+        }
+        [data-bs-theme="dark"] .btn-action:hover,
+        [data-bs-theme="dark"] .btn-action:focus-visible {
+            border-color: var(--brand-color) !important;
+            color: var(--brand-color) !important;
+            background-color: rgba(255, 193, 7, 0.1) !important;
+            box-shadow: 0 0 12px rgba(255, 193, 7, 0.25);
+        }
+        [data-bs-theme="dark"] .btn-action.active {
+            border-color: var(--brand-color) !important;
+            background-color: rgba(255, 193, 7, 0.12) !important;
+            color: var(--brand-color) !important;
+            font-weight: 700;
+        }
+
+        .card {
+            border-radius: var(--card-radius);
+            border: 1px solid var(--bs-border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            background-color: var(--bs-card-bg);
+        }
+
+        h1, h2, h3, h4, h5 {
+            color: var(--bs-heading-color);
+            font-weight: 700;
+        }
+
+        .yellow {
+            color: var(--brand-color);
+        }
+
+        /* --- TOPBAR ACTION BUTTONS --- */
+        .topbar-action-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bs-card-bg);
+            border: 1px solid var(--bs-border-color);
+            color: var(--bs-body-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.2s ease;
+            position: relative;
+            cursor: pointer;
+        }
+        .topbar-action-btn:hover {
+            background-color: var(--bs-tertiary-bg);
+            color: #111315;
+            transform: translateY(-1px);
+        }
+        [data-bs-theme="dark"] .topbar-action-btn:hover {
+            color: var(--brand-color);
+        }
+
+        /* --- REGRAS GLOBAIS PARA MODO DARK --- */
+        [data-bs-theme="dark"] .bg-white {
+            background-color: var(--bs-card-bg) !important;
+            color: var(--bs-body-color) !important;
+        }
+
+        [data-bs-theme="dark"] .bg-light {
+            background-color: var(--bs-tertiary-bg) !important;
+            color: var(--bs-body-color) !important;
+        }
+
+        [data-bs-theme="dark"] .text-dark {
+            color: var(--bs-heading-color) !important;
+        }
+
+        [data-bs-theme="dark"] .card {
+            background-color: var(--bs-card-bg);
+            border: 1px solid var(--bs-border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+        }
+
+        [data-bs-theme="dark"] .topbar-action-btn {
+            background-color: #1a1d21;
+            border-color: #272c33;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+        }
+
+        [data-bs-theme="dark"] .table {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--bs-body-color);
+            --bs-table-border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
+            border-color: var(--bs-border-color);
+        }
+
+        [data-bs-theme="dark"] .table-light,
+        [data-bs-theme="dark"] .table-light > th,
+        [data-bs-theme="dark"] .table-light > tr > th,
+        [data-bs-theme="dark"] .table-light > tr > td {
+            background-color: #1a1e27 !important;
+            color: #f8fafc !important;
+            border-color: #2d3340 !important;
+        }
+
+        [data-bs-theme="dark"] .table-hover > tbody > tr:hover > * {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+            color: var(--bs-body-color) !important;
+        }
+
+        [data-bs-theme="dark"] .btn-outline-dark {
+            color: #e2e8f0 !important;
+            border-color: #3b4252 !important;
+            background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+        [data-bs-theme="dark"] .btn-outline-dark:hover {
+            color: #ffffff !important;
+            border-color: var(--brand-color) !important;
+            background-color: rgba(255, 193, 7, 0.12) !important;
+        }
+
+        [data-bs-theme="dark"] .btn-outline-secondary {
+            color: #cbd5e1 !important;
+            border-color: #3b4252 !important;
+        }
+        [data-bs-theme="dark"] .btn-outline-secondary:hover {
+            color: #ffffff !important;
+            border-color: var(--brand-color) !important;
+            background-color: rgba(255, 193, 7, 0.12) !important;
+        }
+
+        [data-bs-theme="dark"] .border,
+        [data-bs-theme="dark"] .border-top,
+        [data-bs-theme="dark"] .border-bottom,
+        [data-bs-theme="dark"] .border-start,
+        [data-bs-theme="dark"] .border-end {
+            border-color: var(--bs-border-color) !important;
+        }
+
+        [data-bs-theme="dark"] .form-control,
+        [data-bs-theme="dark"] .form-select {
+            background-color: #1a1d22;
+            border-color: #2a2e36;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="bg-body-tertiary">
+
+<div class="d-flex" style="min-height: 100vh;">
+
+
+    <!-- =========================================
+         SIDEBAR HTML
+         ========================================= -->
+    <nav class="sidebar" id="sidebar">
+        
+        <!-- Header (Logo) -->
+        <div class="sidebar-header" id="logo-toggle">
+            <div class="nav-icon text-warning"><i class="bi bi-trophy-fill"></i></div>
+            <span class="fs-5 fw-bold sidebar-text">Gestão Arenas</span>
+        </div>
+        
+        <!-- Action Button -->
+        <div class="sidebar-btn-container">
+            <a href="{% url 'scheduler:arena_home' arena_slug=arena.slug %}" target="_blank" class="btn btn-outline-primary btn-agendamento">
+                <i class="bi bi-box-arrow-up-right"></i>
+                <span class="sidebar-text ms-2">Ver Site</span>
+            </a>
+        </div>
+
+        <!-- Menu Links -->
+        <div class="sidebar-menu">
+            <a href="{% url 'backoffice:dashboard' arena_slug=arena.slug %}" class="nav-link text-decoration-none {% if request.resolver_match.url_name in 'dashboard booking_add booking_create booking_edit booking_delete' or 'reserv' in request.path %}active{% endif %}" title="Controle de Reservas">
+                <div class="nav-icon"><i class="bi bi-calendar-check"></i></div>
+                <span class="sidebar-text">Controle de Reservas</span>
+            </a>
+            
+            <a href="{% url 'backoffice:court_list' arena_slug=arena.slug %}" class="nav-link text-decoration-none {% if 'quadras' in request.path or 'modalidades' in request.path %}active{% endif %}" title="Modalidades e quadras">
+                <div class="nav-icon"><i class="bi bi-grid-1x2"></i></div>
+                <span class="sidebar-text">Modalidades e quadras</span>
+            </a>
+
+            <a href="{% url 'backoffice:customer_list' arena_slug=arena.slug %}" class="nav-link text-decoration-none {% if 'clientes' in request.path %}active{% endif %}" title="Clientes">
+                <div class="nav-icon"><i class="bi bi-people"></i></div>
+                <span class="sidebar-text">Clientes</span>
+            </a>
+            
+            <a href="{% url 'lessons:aulas' arena_slug=arena.slug %}" class="nav-link text-decoration-none {% if 'aulas' in request.path or 'turmas' in request.path or 'professores' in request.path or 'alunos' in request.path or 'matricula' in request.path or 'grade-completa' in request.path %}active{% endif %}" title="Aulas">
+                <div class="nav-icon"><i class="bi bi-mortarboard"></i></div>
+                <span class="sidebar-text">Aulas</span>
+            </a>
+
+            <a href="{% url 'lessons:financial_list' arena_slug=arena.slug %}" class="nav-link text-decoration-none {% if 'financeiro' in request.path and 'configuracoes' not in request.path %}active{% endif %}" title="Financeiro">
+                <div class="nav-icon"><i class="bi bi-cash-coin"></i></div>
+                <span class="sidebar-text">Financeiro</span>
+            </a>
+
+            <a href="{% url 'backoffice:site_customize' arena_slug=arena.slug %}" class="nav-link text-decoration-none {% if 'personalizar' in request.path %}active{% endif %}" title="Personalizar Site">
+                <div class="nav-icon"><i class="bi bi-palette-fill"></i></div>
+                <span class="sidebar-text">Personalizar Site</span>
+            </a>
+            
+            <a href="{% url 'backoffice:arena_config' arena_slug=arena.slug %}" class="nav-link text-decoration-none {% if 'configuracoes' in request.path or 'horarios' in request.path or 'equipamentos' in request.path or 'regras-preco' in request.path %}active{% endif %}" title="Configurações">
+                <div class="nav-icon"><i class="bi bi-gear"></i></div>
+                <span class="sidebar-text">Configurações</span>
+            </a>
+            
+            <a href="{% url 'backoffice:reports' arena_slug=arena.slug %}" class="nav-link text-decoration-none {% if 'relatorios' in request.path %}active{% endif %}" title="Relatórios">
+                <div class="nav-icon"><i class="bi bi-graph-up"></i></div>
+                <span class="sidebar-text">Relatórios</span>
+            </a>
+        </div>
+        
+        <!-- Footer User Profile -->
+        <div class="sidebar-footer">
+            <div class="dropdown dropup">
+                <a href="#" class="user-dropdown-toggle dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false" data-bs-display="static">
+                    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div class="sidebar-text ms-2 lh-1 text-truncate" style="max-width: 150px;">
+                        <strong class="d-block">{{ user.username }}</strong>
+                        <small class="text-white-50">{{ arena.name }}</small>
+                    </div>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
+                    <li><h6 class="dropdown-header text-uppercase">Suas Arenas</h6></li>
+                    {% for item in my_arenas %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center {% if item.slug == arena.slug %}active{% endif %}"
+                               href="{% url 'backoffice:dashboard' item.slug %}">
+                               {{ item.name }}
+                               {% if item.slug == arena.slug %}
+                                <i class="bi bi-check2"></i>
+                               {% endif %}
+                            </a>
+                        </li>
+                    {% empty %}
+                        <li><span class="dropdown-item disabled">Nenhuma outra arena</span></li>
+                    {% endfor %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form action="{% url 'logout' %}" method="post" class="w-100">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item text-danger d-flex align-items-center">
+                                <i class="bi bi-box-arrow-right me-2"></i> Sair do Sistema
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- BACKDROP MOBILE -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop d-lg-none"></div>
+
+    <!-- CONTEÚDO -->
+    <main class="content">
+        <!-- TOPBAR -->
+        <div class="d-flex justify-content-between align-items-center mb-4 gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <button id="mobile-sidebar-toggle" class="topbar-action-btn d-lg-none" type="button" title="Abrir menu">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button class="topbar-action-btn" type="button" title="Notificações">
+                    <i class="bi bi-bell fs-5"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                        <span class="visually-hidden">Novas notificações</span>
+                    </span>
+                </button>
+                
+                <button id="theme-toggle" class="topbar-action-btn" type="button" title="Alternar tema claro/escuro">
+                    <i class="bi bi-moon-fill fs-5" id="theme-icon"></i>
+                </button>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} mt-3 shadow-sm border-0">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,303 @@
+/* =========================================
+   RESPONSIVIDADE E ADAPTAÇÃO
+   ========================================= */
+
+/* --- 1. Tablet Landscape e Laptops Pequenos (até 1024px) --- */
+@media (max-width: 1024px) {
+
+    /* Ajustes Gerais */
+    .container {
+        padding: 0 20px; /* Margem lateral segura */
+    }
+
+    /* Tour do Sistema - Ajuste de Espaçamento */
+    .tour-container {
+        gap: 30px;
+    }
+
+    .tour-content {
+        padding: 15px;
+    }
+
+    /* Pricing - Ajuste de Grid */
+    .pricing-grid {
+        gap: 20px;
+    }
+}
+
+/* --- 2. Ajuste Específico para o Tour (até 900px) --- */
+/* O Tour precisa quebrar um pouco antes do mobile para não ficar espremido */
+@media (max-width: 900px) {
+
+    .tour-container {
+        flex-direction: column; /* Menu em cima, conteúdo embaixo */
+    }
+
+    .tour-menu {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 2 botões por linha (Tablet) */
+        gap: 10px;
+    }
+
+    .tour-btn {
+        padding: 15px;
+        font-size: 1rem;
+        justify-content: center;
+    }
+
+    /* Ajuste visual do botão ativo no modo coluna */
+    .tour-btn.active {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .tour-content {
+        width: 100%;
+        min-height: auto;
+    }
+}
+
+/* --- 3. Tablet Portrait e Mobile (até 768px) --- */
+/* AQUI ESTÁ A FUSÃO DOS DOIS BLOCOS QUE VOCÊ TINHA */
+@media (max-width: 768px) {
+
+    /* === MENU HAMBÚRGUER E NAVBAR === */
+    .menu-toggle {
+        display: block; /* Mostra o botão */
+        z-index: 2002;
+        cursor: pointer;
+        position: absolute;
+        top: 5px;
+        right: 20px;
+    }
+
+    .nav-links {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100vh;
+        background: rgba(18, 18, 18, 0.98);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: 0.4s ease;
+        margin-left: 0;
+        z-index: 2001;
+    }
+
+    .nav-links.active {
+        left: 0;
+        display: flex;
+    }
+
+    .nav-links li {
+        margin: 10px 0;
+    }
+
+    .nav-links a {
+        font-size: 1.5rem;
+    }
+
+    /* Animação do Ícone X */
+    .menu-toggle.is-active .bar:nth-child(2) { opacity: 0; }
+    .menu-toggle.is-active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); background-color: var(--primary-gold); }
+    .menu-toggle.is-active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); background-color: var(--primary-gold); }
+
+    /* === HERO SECTION === */
+    .hero {
+        margin-top: 70px;
+        padding: 60px 0;
+        height: auto;
+    }
+
+    .hero h2 {
+        font-size: 2rem;
+        line-height: 1.2;
+    }
+
+    .hero-btns {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        align-items: center;
+    }
+
+    .btn {
+        width: 100%;
+        max-width: 300px;
+        display: block;
+        text-align: center;
+    }
+
+    .btn-outline {
+        margin-left: 0;
+    }
+
+    /* === FEATURES (SOLUÇÕES) === */
+    /* Transforma em 1 coluna para leitura fácil */
+    .features-grid {
+        grid-template-columns: 1fr;
+        padding: 0 10px;
+    }
+
+    .feature-card {
+        padding: 20px;
+    }
+
+    /* === SEGURANÇA E CONTADORES === */
+    .security-grid {
+        gap: 20px;
+    }
+
+    .security-card {
+        padding: 25px;
+    }
+
+    .counter-wrapper {
+        font-size: 2.5rem;
+    }
+
+    .symbol {
+        font-size: 1.8rem;
+    }
+
+    /* === TOUR DO SISTEMA (Ajuste Fino Mobile) === */
+    /* Container dos botões vira uma linha horizontal com rolagem */
+    .tour-menu {
+        display: flex;
+        flex-direction: row; /* Garante linha horizontal */
+        overflow-x: auto;    /* Permite rolar para o lado */
+        white-space: nowrap; /* Não deixa quebrar linha */
+        gap: 10px;
+        padding-bottom: 10px; /* Espaço para a barra de rolagem não colar */
+        margin-bottom: 20px;
+
+        /* Esconde a barra de rolagem feia (opcional) */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+    }
+
+    .tour-menu::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+
+    /* Estilo do botão estilo "Pílula" (Chip) */
+    .tour-btn {
+        flex: 0 0 auto; /* Não deixa o botão encolher */
+        padding: 10px 20px;
+        border-radius: 50px; /* Borda redonda */
+        background: rgba(255,255,255, 0.1);
+        border: 1px solid rgba(255,255,255, 0.2);
+        color: white;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Botão Ativo com destaque */
+    .tour-btn.active {
+        background: var(--primary-gold); /* Sua cor dourada */
+        color: #000; /* Texto escuro para contraste */
+        border-color: var(--primary-gold);
+        font-weight: bold;
+        transform: scale(1.05);
+    }
+
+    /* Ajuste do ícone no mobile */
+    .tour-btn i {
+        font-size: 1rem;
+    }
+
+    /* Layout do Conteúdo: Imagem em cima, Texto embaixo */
+    .tour-content {
+        display: flex;
+        flex-direction: column-reverse; /* Inverte: Imagem sobe, Texto desce */
+        gap: 10px;
+    }
+
+    /* Container das bolinhas */
+    .tour-indicators {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 15px; /* Espaço entre bolinhas e imagem */
+        margin-top: 5px;
+    }
+
+    /* A bolinha em si */
+    .dot {
+        width: 10px;
+        height: 10px;
+        background-color: rgba(255, 255, 255, 0.2); /* Cinza transparente */
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    /* Bolinha ativa */
+    .dot.active {
+        background-color: var(--primary-gold); /* Sua cor dourada */
+        transform: scale(1.2); /* Levemente maior */
+        box-shadow: 0 0 5px rgba(212, 175, 55, 0.5);
+    }
+
+    .content-image img {
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+
+    .content-text h3 {
+        font-size: 1.7rem;
+        margin-bottom: 10px;
+        line-height: 1.2;
+    }
+
+    .content-text p {
+        font-size: 0.95rem;
+        line-height: 1.4;
+        margin-top: 0;
+        color: #ccc;
+    }
+
+    .content-text {
+        text-align: center;
+    }
+
+    /* === PRICING (PLANOS) === */
+    .pricing-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .price-card.popular {
+        transform: scale(1); /* Remove zoom */
+        order: -1; /* Joga o popular para o topo */
+    }
+
+    .price-card {
+        padding: 30px 20px;
+    }
+
+    /* === GERAL E CONTATO === */
+    .section-title {
+        font-size: 2rem;
+        margin-bottom: 40px;
+    }
+
+    .contact-form {
+        padding: 0 10px;
+    }
+
+    .social-links .icons a {
+        font-size: 1.5rem;
+        margin: 0 10px;
+    }
+}

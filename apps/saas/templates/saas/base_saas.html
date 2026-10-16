@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SaaS Master Control | Gestão da Plataforma{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --brand-primary: #f59e0b;
+            --brand-primary-rgb: 245, 158, 11;
+            --brand-accent: #3b82f6;
+            --bg-body-dark: #090d16;
+            --card-bg-dark: #111827;
+            --card-border-dark: rgba(255, 255, 255, 0.08);
+            --card-hover-border: rgba(245, 158, 11, 0.4);
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-body-dark);
+            color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navbar */
+        .master-navbar {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border-dark);
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
+
+        .navbar-brand-badge {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: #000;
+            font-weight: 800;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .nav-link-custom {
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 8px 14px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link-custom:hover, .nav-link-custom.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-link-custom.active {
+            color: var(--brand-primary);
+            background: rgba(245, 158, 11, 0.12);
+        }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--card-bg-dark);
+            border: 1px solid var(--card-border-dark);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+
+        /* KPI Card */
+        .kpi-card {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            width: 90px;
+            height: 90px;
+            background: radial-gradient(circle, var(--kpi-glow, rgba(245, 158, 11, 0.15)) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .kpi-val {
+            font-size: 1.85rem;
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        .kpi-lbl {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        /* Tables */
+        .table-custom {
+            --bs-table-bg: transparent;
+            --bs-table-border-color: var(--card-border-dark);
+            color: #e2e8f0;
+            vertical-align: middle;
+        }
+
+        .table-custom th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            font-weight: 700;
+            padding: 1rem;
+            border-bottom: 1px solid var(--card-border-dark);
+        }
+
+        .table-custom td {
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .table-custom tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Badges */
+        .badge-status {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.02em;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge-success-subtle {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .badge-warning-subtle {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+
+        .badge-danger-subtle {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .badge-info-subtle {
+            background: rgba(59, 130, 246, 0.12);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+
+        /* WhatsApp Button */
+        .btn-whatsapp {
+            background-color: #25D366;
+            color: #000;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.82rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: filter 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-whatsapp:hover {
+            color: #000;
+            filter: brightness(1.1);
+        }
+
+        /* Form Inputs */
+        .form-control, .form-select {
+            background-color: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #f8fafc;
+            border-radius: 10px;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #1e293b;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+            color: #fff;
+        }
+        .form-control::placeholder {
+            color: #64748b;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            border-top: 1px solid var(--card-border-dark);
+            padding: 1.5rem 0;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Top Bar -->
+    <nav class="master-navbar py-2 px-3 px-lg-4">
+        <div class="container-fluid d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <a href="{% url 'saas:dashboard' %}" class="d-flex align-items-center gap-2 text-decoration-none">
+                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);">
+                        <i class="bi bi-shield-shaded text-warning fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold text-white fs-6">SaaS Hub</span>
+                            <span class="navbar-brand-badge">Master</span>
+                        </div>
+                        <small class="text-secondary d-none d-sm-block" style="font-size: 0.72rem;">Central de Gestão & Logística</small>
+                    </div>
+                </a>
+
+                <div class="d-none d-md-flex align-items-center gap-1 ms-4">
+                    <a href="{% url 'saas:dashboard' %}" class="nav-link-custom {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="bi bi-grid-1x2-fill"></i> Visão Geral
+                    </a>
+                    <a href="{% url 'saas:subscription_list' %}" class="nav-link-custom {% if 'mensalidades' in request.path %}active{% endif %}">
+                        <i class="bi bi-receipt"></i> Mensalidades
+                    </a>
+                    <a href="{% url 'saas:arena_create' %}" class="nav-link-custom {% if request.resolver_match.url_name == 'arena_create' %}active{% endif %}">
+                        <i class="bi bi-building-add text-warning"></i> Cadastrar Arena
+                    </a>
+                    <a href="/own/" target="_blank" class="nav-link-custom">
+                        <i class="bi bi-terminal"></i> Django Admin <i class="bi bi-box-arrow-up-right small"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-none d-sm-block text-end">
+                    <div class="fw-bold text-light small">{{ request.user.get_full_name|default:request.user.username }}</div>
+                    <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.65rem;">SUPER ADMIN</span>
+                </div>
+                <a href="{% url 'logout' %}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" title="Sair">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages / Alerts -->
+    {% if messages %}
+    <div class="container-fluid px-3 px-lg-4 mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show glass-card border-0 d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-info-circle-fill"></i>
+            <div>{{ message|safe }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="flex-grow-1 py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container-fluid px-3 px-lg-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+            <div>
+                &copy; {{ now|date:"Y" }} Sistema de Agenda para Arenas &mdash; Painel do Proprietário do SaaS.
+            </div>
+            <div class="d-flex gap-3">
+                <span class="badge bg-dark-subtle text-secondary border border-secondary-subtle">Ambiente Protegido</span>
+                <span class="badge bg-dark-subtle text-secondary border border-secondary-subtle">Acesso Restrito</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

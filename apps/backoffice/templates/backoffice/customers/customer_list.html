@@ -1,0 +1,582 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <!-- Flash message container para operações AJAX -->
+    <div id="ajax-flash-container"></div>
+
+    <div class="d-flex justify-content-between align-items-md-center flex-column flex-md-row gap-3 mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 mb-1">Clientes</h1>
+            <p class="text-body-secondary small mb-0">Gerencie os clientes da sua arena.</p>
+        </div>
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end ms-md-auto">
+            <a href="{% url 'backoffice:dashboard' arena_slug=arena.slug %}" class="btn btn-action">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <button type="button" class="btn btn-action-primary" onclick="openNewCustomerModal();">
+                <i class="bi bi-plus-lg me-1"></i> Novo Cliente
+            </button>
+        </div>
+    </div>
+
+    <form method="get" class="w-100 mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por nome, telefone ou email..." value="{{ request.GET.q }}">
+            <button type="submit" class="btn btn-action d-flex align-items-center">
+                <i class="bi bi-search"></i> <span class="d-none d-sm-inline ms-1">Buscar</span>
+            </button>
+            {% if request.GET.q %}
+                <a href="{% url 'backoffice:customer_list' arena_slug=arena.slug %}" class="btn btn-action-danger d-flex align-items-center" title="Limpar filtro">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            {% endif %}
+        </div>
+    </form>
+
+    <div class="card shadow-sm border-0 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive" id="table-scroll-container">
+                <table class="table align-middle mb-0 table-hover">
+                    <thead class="customer-thead">
+                        <tr>
+                            <th class="ps-4">
+                                Cliente
+                            </th>
+                            <th class="d-none d-sm-table-cell">Telefone</th>
+                            <th class="d-none d-sm-table-cell">Jogos</th>
+                            <th class="text-end pe-3 pe-sm-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customers-tbody">
+                        {% include 'backoffice/customers/_customer_rows.html' %}
+                    </tbody>
+                </table>
+                {% if page_obj.has_next %}
+                    <div id="loading-indicator" class="text-center py-3 text-body-secondary" data-next-url="{{ next_page_url|safe }}">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div> Carregando mais clientes...
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CADASTRAR / EDITAR CLIENTE
+     ======================================================= -->
+<div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-person-fill fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="customerModalTitle">Novo Cliente</h5>
+                        <small class="text-body-secondary" id="customerModalSubtitle">Cadastre um novo cliente para a sua arena.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="customerForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="customerFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <div class="row g-3">
+                        <!-- Nome Completo -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_customer_name">
+                                Nome Completo <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="id_customer_name" class="form-control" placeholder="Ex: João da Silva" required>
+                            <div class="invalid-feedback small" id="err-name"></div>
+                        </div>
+
+                        <!-- Telefone / WhatsApp -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_customer_phone">
+                                WhatsApp / Telefone <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary"><i class="bi bi-whatsapp text-success"></i></span>
+                                <input type="text" name="phone" id="id_customer_phone" class="form-control" placeholder="(00) 00000-0000" maxlength="15" required>
+                            </div>
+                            <div class="invalid-feedback small" id="err-phone"></div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_customer_email">
+                                E-mail <small class="text-body-secondary fw-normal">(opcional)</small>
+                            </label>
+                            <input type="email" name="email" id="id_customer_email" class="form-control" placeholder="cliente@email.com">
+                            <div class="invalid-feedback small" id="err-email"></div>
+                        </div>
+
+                        <!-- CPF -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_customer_cpf">
+                                CPF <small class="text-body-secondary fw-normal">(opcional)</small>
+                            </label>
+                            <input type="text" name="cpf" id="id_customer_cpf" class="form-control" placeholder="000.000.000-00" maxlength="14">
+                            <div class="invalid-feedback small" id="err-cpf"></div>
+                        </div>
+
+                        <!-- Data de Nascimento -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_customer_birth_date">
+                                Data de Nascimento <small class="text-body-secondary fw-normal">(opcional)</small>
+                            </label>
+                            <input type="date" name="birth_date" id="id_customer_birth_date" class="form-control">
+                            <div class="invalid-feedback small" id="err-birth_date"></div>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-1" for="id_customer_observation">
+                                Observações Internas <small class="text-body-secondary fw-normal">(opcional)</small>
+                            </label>
+                            <textarea name="observation" id="id_customer_observation" class="form-control" rows="3" placeholder="Informações de saúde, preferências de quadra, etc..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4" id="btnSubmitCustomer">
+                        <span class="btn-text">Salvar Cliente</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAÇÃO DE EXCLUSÃO DE CLIENTE
+     ======================================================= -->
+<div class="modal fade" id="deleteCustomerModal" tabindex="-1" aria-labelledby="deleteCustomerModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="delete-icon-circle mx-auto mb-3">
+                    <i class="bi bi-trash3-fill fs-2 text-danger"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="deleteCustomerModalTitle">Excluir Cliente</h4>
+                <p class="lead mb-2 fs-6">
+                    Tem certeza que deseja excluir o cliente <strong id="deleteCustomerNameText" class="text-body"></strong>?
+                </p>
+                <p class="text-body-secondary small mb-4">
+                    Esta ação não pode ser desfeita e removerá o cadastro do cliente da sua arena.
+                </p>
+
+                <form id="deleteCustomerForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-danger px-4" id="btnConfirmDeleteCustomer">
+                            <i class="bi bi-trash me-1"></i> Sim, Excluir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // URLs base para o CRUD
+    const URL_CUSTOMER_CREATE = "{% url 'backoffice:customer_create' arena_slug=arena.slug %}";
+
+    let customerModalInstance = null;
+    let deleteModalInstance = null;
+
+    // Mascaras simples de input
+    function formatPhone(value) {
+        if (!value) return '';
+        const digits = value.replace(/\D/g, '');
+        if (digits.length <= 10) {
+            return digits.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').trim();
+        }
+        return digits.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').trim();
+    }
+
+    function formatCPF(value) {
+        if (!value) return '';
+        const digits = value.replace(/\D/g, '').slice(0, 11);
+        return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4').replace(/-$/, '').trim();
+    }
+
+    function getCustomerModal() {
+        const el = document.getElementById('customerModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getDeleteCustomerModal() {
+        const el = document.getElementById('deleteCustomerModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    // Inicialização do Modal de Criação
+    function openNewCustomerModal() {
+        const form = document.getElementById('customerForm');
+        if (!form) return;
+        form.reset();
+        form.action = URL_CUSTOMER_CREATE;
+
+        document.getElementById('customerModalTitle').textContent = "Novo Cliente";
+        document.getElementById('customerModalSubtitle').textContent = "Cadastre um novo cliente para a sua arena.";
+        document.getElementById('btnSubmitCustomer').querySelector('.btn-text').textContent = "Cadastrar Cliente";
+
+        clearFormErrors();
+        const modal = getCustomerModal();
+        if (modal) modal.show();
+    }
+
+    // Inicialização do Modal de Edição
+    function openEditCustomerModal(btn) {
+        const form = document.getElementById('customerForm');
+        if (!form || !btn) return;
+        form.reset();
+        clearFormErrors();
+
+        const name = btn.getAttribute('data-name') || '';
+        const phone = btn.getAttribute('data-phone') || '';
+        const email = btn.getAttribute('data-email') || '';
+        const cpf = btn.getAttribute('data-cpf') || '';
+        const birthDate = btn.getAttribute('data-birth-date') || '';
+        const observation = btn.getAttribute('data-observation') || '';
+        const url = btn.getAttribute('data-url') || '';
+
+        form.action = url;
+
+        document.getElementById('id_customer_name').value = name;
+        document.getElementById('id_customer_phone').value = formatPhone(phone);
+        document.getElementById('id_customer_email').value = email;
+        document.getElementById('id_customer_cpf').value = formatCPF(cpf);
+        document.getElementById('id_customer_birth_date').value = birthDate;
+        document.getElementById('id_customer_observation').value = observation;
+
+        document.getElementById('customerModalTitle').textContent = "Editar Cliente";
+        document.getElementById('customerModalSubtitle').textContent = `Editando cadastro de ${name}`;
+        document.getElementById('btnSubmitCustomer').querySelector('.btn-text').textContent = "Salvar Alterações";
+
+        const modal = getCustomerModal();
+        if (modal) modal.show();
+    }
+
+    // Inicialização do Modal de Exclusão
+    function openDeleteCustomerModal(btn) {
+        const form = document.getElementById('deleteCustomerForm');
+        if (!form || !btn) return;
+
+        const name = btn.getAttribute('data-name') || '';
+        const url = btn.getAttribute('data-url') || '';
+        form.action = url;
+
+        document.getElementById('deleteCustomerNameText').textContent = name;
+        const modal = getDeleteCustomerModal();
+        if (modal) modal.show();
+    }
+
+    function clearFormErrors() {
+        const alertBox = document.getElementById('customerFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+
+        const inputs = document.querySelectorAll('#customerForm .form-control');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+
+        const feedbacks = document.querySelectorAll('#customerForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    function initCustomerList() {
+        // Checa flash messages pendentes de AJAX
+        const savedFlash = sessionStorage.getItem('customer_flash_msg');
+        if (savedFlash) {
+            sessionStorage.removeItem('customer_flash_msg');
+            const flashContainer = document.getElementById('ajax-flash-container');
+            if (flashContainer) {
+                flashContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> ${savedFlash}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", initCustomerList);
+    document.addEventListener("turbo:render", initCustomerList);
+
+    // Mascaramento delegado nos inputs
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.id === 'id_customer_phone') {
+            e.target.value = formatPhone(e.target.value);
+        }
+        if (e.target && e.target.id === 'id_customer_cpf') {
+            e.target.value = formatCPF(e.target.value);
+        }
+    });
+
+    // Submissão AJAX dos formulários com Event Delegation
+    document.addEventListener("submit", async function(e) {
+        // 1. Form de Cliente (Criar / Editar)
+        if (e.target && e.target.id === 'customerForm') {
+            e.preventDefault();
+            const customerForm = e.target;
+            clearFormErrors();
+
+            const submitBtn = document.getElementById('btnSubmitCustomer');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(customerForm);
+                const csrfToken = customerForm.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(customerForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getCustomerModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('customer_flash_msg', data.message || 'Cliente salvo com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('customerFormAlert');
+                    alertBox.classList.remove('d-none');
+                    
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.querySelector(`[name="${field}"]`);
+                            const feedback = document.getElementById(`err-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Ocorreu um erro ao salvar o cliente. Verifique os campos.');
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                const alertBox = document.getElementById('customerFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // 2. Form de Exclusão de Cliente
+        if (e.target && e.target.id === 'deleteCustomerForm') {
+            e.preventDefault();
+            const deleteForm = e.target;
+
+            const submitBtn = document.getElementById('btnConfirmDeleteCustomer');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Excluindo...';
+
+            try {
+                const formData = new FormData(deleteForm);
+                const csrfToken = deleteForm.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(deleteForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getDeleteCustomerModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('customer_flash_msg', data.message || 'Cliente excluído com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Não foi possível excluir o cliente.');
+                }
+            } catch (err) {
+                console.error('Erro na exclusão:', err);
+                alert('Erro ao excluir o cliente. Tente novamente.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    });
+
+    // Scroll inteligente (Infinite Scroll)
+    function setupInfiniteScroll() {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const tbody = document.getElementById('customers-tbody');
+        const scrollContainer = document.getElementById('table-scroll-container');
+        
+        if (!loadingIndicator || !tbody || !scrollContainer) return;
+
+        let isFetching = false;
+        let observer = null;
+        
+        async function loadNextPage() {
+            const nextUrl = loadingIndicator.getAttribute('data-next-url');
+            if (!nextUrl || isFetching) return;
+            
+            isFetching = true;
+            loadingIndicator.style.display = 'block';
+            
+            try {
+                const response = await fetch(nextUrl, { 
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                
+                const data = await response.json();
+                
+                if (data.html && data.html.trim().length > 0) {
+                    tbody.insertAdjacentHTML('beforeend', data.html);
+                }
+                
+                if (data.has_next && data.next_url) {
+                    loadingIndicator.setAttribute('data-next-url', data.next_url);
+                } else {
+                    loadingIndicator.removeAttribute('data-next-url');
+                    loadingIndicator.style.display = 'none';
+                    if (observer) observer.disconnect();
+                    scrollContainer.removeEventListener('scroll', onScroll);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar mais clientes:', error);
+                loadingIndicator.innerHTML = '<span class="text-danger small">Erro ao carregar mais clientes. Atualize a página.</span>';
+                if (observer) observer.disconnect();
+            } finally {
+                isFetching = false;
+            }
+        }
+        
+        if ('IntersectionObserver' in window) {
+            observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && !isFetching) {
+                    loadNextPage();
+                }
+            }, { root: scrollContainer, rootMargin: "150px" });
+            
+            observer.observe(loadingIndicator);
+        }
+        
+        function onScroll() {
+            if (isFetching || !loadingIndicator.getAttribute('data-next-url')) return;
+            const distanceToBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
+            if (distanceToBottom < 200) {
+                loadNextPage();
+            }
+        }
+        scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+    }
+
+    document.addEventListener("DOMContentLoaded", setupInfiniteScroll);
+    document.addEventListener("turbo:render", setupInfiniteScroll);
+</script>
+
+<style>
+    /* Table scroll container */
+    #table-scroll-container {
+        max-height: 65vh;
+        overflow-y: auto;
+    }
+    .customer-thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 800;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--bs-border-color);
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+    [data-bs-theme="dark"] .customer-thead th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-color: #2c323e !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+    .customer-badge {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        border: 1px solid var(--bs-border-color);
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 8px;
+    }
+    [data-bs-theme="dark"] .customer-badge {
+        background-color: #1e2229 !important;
+        color: #e2e8f0 !important;
+        border-color: #333a48 !important;
+    }
+
+    /* Modal Icon Badges */
+    .modal-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background-color: rgba(255, 193, 7, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .delete-icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: rgba(220, 53, 69, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    [data-bs-theme="dark"] .modal-content {
+        background-color: #1a1d22 !important;
+        border: 1px solid #2d3340 !important;
+    }
+    [data-bs-theme="dark"] .modal-header,
+    [data-bs-theme="dark"] .modal-footer {
+        border-color: #2d3340 !important;
+    }
+</style>
+{% endblock %}

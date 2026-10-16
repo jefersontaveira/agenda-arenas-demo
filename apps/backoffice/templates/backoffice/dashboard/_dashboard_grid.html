@@ -1,0 +1,124 @@
+{% if is_closed %}
+    <div class="alert alert-warning text-center py-5 shadow-sm border-0 mb-5">
+        <i class="bi bi-shop-window fs-1 mb-3 d-block opacity-50"></i>
+        <h4 class="fw-bold">A Arena está fechada hoje!</h4>
+        <p class="text-body-secondary">Não há horários de funcionamento configurados para {{ current_date|date:"l" }}.</p>
+        <a href="{% url 'backoffice:opening_hours_list' arena_slug=arena.slug %}" class="btn btn-primary mt-2">Configurar Horários</a>
+    </div>
+{% else %}
+    <div class="card shadow-sm border-0 mb-5 overflow-hidden dashboard-table-card">
+        <div class="table-responsive hide-scrollbar">
+            <table class="table table-bordered text-center align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 85px;" class="py-3 time-header">Horário</th>
+                        {% for court in courts %}
+                        <th style="border-top: 4px solid {{ court.color }}; min-width: 170px;" class="py-3 court-header">
+                            <span class="fw-bold text-uppercase small ls-1">{{ court.name }}</span>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for slot, court_data in grid.items %}
+                    <tr>
+                        <td class="fw-bold time-cell border-end">
+                            {{ slot|date:"H:i" }}
+                        </td>
+
+                        {% for court, item in court_data.items %}
+                            {% if item %}
+                                {% if item.class_group %}
+                                    <td class="p-0 position-relative">
+                                        <a href="{% url 'lessons:class_detail' arena_slug=arena.slug pk=item.class_group.pk %}"
+                                           class="d-block text-decoration-none h-100 w-100 p-2 transition-effect booking-card booking-lesson"
+                                           title="Turma: {{ item.class_group.name }}">
+
+                                            <div class="lh-1 mb-1 text-start">
+                                                <span class="fw-bold d-block text-truncate booking-customer-name">{{ item.class_group.name|truncatechars:18 }}</span>
+                                                <small class="text-body-secondary" style="font-size: 0.75rem;">
+                                                    {% if item.class_group.teacher %}
+                                                        <i class="bi bi-person me-1 text-info"></i>{{ item.class_group.teacher.name|truncatechars:18 }}
+                                                    {% elif item.class_group.description %}
+                                                        <i class="bi bi-info-circle me-1 text-info"></i>{{ item.class_group.description|truncatechars:18 }}
+                                                    {% else %}
+                                                        <i class="bi bi-mortarboard me-1 text-info"></i>Turma Regular
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            <div class="mt-2 text-start">
+                                                <span class="badge bg-info text-dark">Aula</span>
+                                            </div>
+                                        </a>
+                                    </td>
+                                {% elif item.customer %}
+                                    <td class="p-0 position-relative">
+                                        <a href="{% url 'backoffice:booking_edit' arena_slug=arena.slug pk=item.pk %}"
+                                           id="booking-card-{{ item.pk }}"
+                                           data-booking-id="{{ item.pk }}"
+                                           data-payment-status="{{ item.payment_status }}"
+                                           data-customer-name="{{ item.customer.name }}"
+                                           class="d-block text-decoration-none h-100 w-100 p-2 transition-effect booking-card
+                                            {% if item.payment_status == 'PAID' %} booking-paid
+                                            {% elif item.payment_status == 'PARTIAL' %} booking-partial
+                                            {% else %} booking-unpaid {% endif %}">
+
+                                            <div class="lh-1 mb-1 text-start">
+                                                <span class="fw-bold d-block text-truncate booking-customer-name">{{ item.customer.name|truncatechars:18 }}</span>
+                                                <small class="text-body-secondary" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-whatsapp me-1 text-success"></i>{{ item.customer.phone }}
+                                                </small>
+                                            </div>
+                                            <div class="mt-2 text-start">
+                                                {% if item.payment_status == 'PAID' %}
+                                                    <span class="badge bg-success text-white shadow-xs">
+                                                        <i class="bi bi-check-circle-fill me-1"></i>Pago R$ {{ item.amount_paid|floatformat:2 }}
+                                                    </span>
+                                                {% elif item.payment_status == 'PARTIAL' %}
+                                                    <span class="badge bg-warning text-dark border border-warning shadow-xs">
+                                                        <i class="bi bi-pie-chart-fill me-1"></i>Sinal 50% (Resta R$ {{ item.remaining_balance|floatformat:2 }})
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-danger text-white border border-danger-subtle shadow-xs pulse-unpaid-badge d-inline-flex align-items-center gap-1">
+                                                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                                        <strong>NÃO PAGO (R$ {{ item.price|floatformat:2 }})</strong>
+                                                    </span>
+                                                    {% if item.status == 'CONFIRMED' %}
+                                                        <div class="mt-1">
+                                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 0.68rem;">
+                                                                <i class="bi bi-geo-alt-fill me-1"></i>Pagar na Arena
+                                                            </span>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="mt-1">
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.68rem;">
+                                                                <i class="bi bi-hourglass-split me-1"></i>Aguardando PIX
+                                                            </span>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                        </a>
+                                    </td>
+                                {% endif %}
+                            {% else %}
+                                {% if slot in past_slots %}
+                                    <td class="slot-past p-0"><div class="py-3"><i class="bi bi-dash-lg"></i></div></td>
+                                {% else %}
+                                    <td class="p-0 position-relative">
+                                        <a href="{% url 'backoffice:booking_create' arena_slug=arena.slug court_id=court.id %}?date={{ current_date|date:'Y-m-d' }}&time={{ slot|date:'H:i' }}"
+                                           class="link-plus"
+                                           title="Novo agendamento">
+                                            <i class="bi bi-plus-lg fs-5 fw-bold"></i>
+                                        </a>
+                                    </td>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}

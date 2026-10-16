@@ -1,0 +1,176 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 mb-1">{{ titulo|default:"Nova Matrícula" }}</h1>
+            <p class="text-body-secondary small mb-0">Vincule um aluno a uma turma da sua arena.</p>
+        </div>
+        <a href="{% url 'lessons:aulas' arena_slug=arena.slug %}" class="btn btn-action">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <h5 class="fw-bold text-body mb-3 border-bottom pb-2">
+                                <i class="bi bi-person-badge me-2 text-primary"></i>Dados do Aluno
+                            </h5>
+
+                            <div class="col-12 mb-3">
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="student_type" id="opt_existing" value="existing" checked>
+                                    <label class="btn btn-action w-50" for="opt_existing"><i class="bi bi-person-check me-2"></i>Aluno Existente</label>
+
+                                    <input type="radio" class="btn-check" name="student_type" id="opt_new" value="new">
+                                    <label class="btn btn-action w-50" for="opt_new"><i class="bi bi-person-plus me-2"></i>Novo Aluno</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12" id="div-search-student">
+                                <label class="form-label fw-bold">Buscar Aluno Cadastrado</label>
+                                {{ form.customer }}
+                                <div class="form-text text-body-secondary">Selecione para preencher automaticamente os dados abaixo.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="card bg-body-tertiary border p-3 rounded-3">
+                                    <h6 class="text-body-secondary mb-3 small fw-bold text-uppercase">Informações Cadastrais</h6>
+                                    <div class="row g-3">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label fw-bold">Nome</label>
+                                            {{ form.new_student_name }}
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label fw-bold">WhatsApp</label>
+                                            {{ form.new_student_phone }}
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-bold">Email (Opcional)</label>
+                                            {{ form.new_student_email }}
+                                            <div class="form-text small text-success fw-bold d-none" id="email-update-msg">
+                                                <i class="bi bi-info-circle"></i> Preencha para atualizar o cadastro deste aluno.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <label class="form-label fw-bold">Turma</label>
+                                {{ form.class_group }}
+                            </div>
+
+                            <h5 class="fw-bold text-body mt-4 mb-3 border-bottom pb-2">
+                                <i class="bi bi-wallet2 me-2 text-warning"></i>Financeiro & Matrícula
+                            </h5>
+                            <div class="col-12 col-sm-6 col-md-4">
+                                <label class="form-label fw-bold">Valor Mensal</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-body-tertiary">R$</span>
+                                    {{ form.agreed_price }}
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4">
+                                <label class="form-label fw-bold">Dia do Vencimento</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-body-tertiary"><i class="bi bi-calendar-event"></i></span>
+                                    {{ form.due_day }}
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4">
+                                <label class="form-label fw-bold">Início</label>
+                                {{ form.start_date }}
+                            </div>
+                            <div class="col-12 mt-3">
+                                <label class="form-label fw-bold">Status da Matrícula</label>
+                                {{ form.status }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end flex-wrap gap-2 mt-5">
+                            <a href="{% url 'lessons:aulas' arena_slug=arena.slug %}" class="btn btn-action">Cancelar</a>
+                            <button type="submit" class="btn btn-action-primary px-4 fw-bold">
+                                <i class="bi bi-check-lg me-1"></i>Concluir Matrícula
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function initEnrollmentForm() {
+        const optExisting = document.getElementById('opt_existing');
+        const optNew = document.getElementById('opt_new');
+        const divSearch = document.getElementById('div-search-student');
+
+        const selectCustomer = document.getElementById('id_customer');
+        const inputName = document.getElementById('id_new_student_name');
+        const inputPhone = document.getElementById('id_new_student_phone');
+        const inputEmail = document.getElementById('id_new_student_email');
+        const msgUpdate = document.getElementById('email-update-msg');
+
+        if (!optExisting || !optNew) return;
+
+        function toggleMode() {
+            if (optNew.checked) {
+                if (divSearch) divSearch.classList.add('d-none');
+                if (selectCustomer) selectCustomer.value = "";
+                if (inputName) { inputName.value = ""; inputName.readOnly = false; }
+                if (inputPhone) { inputPhone.value = ""; inputPhone.readOnly = false; }
+                if (inputEmail) inputEmail.value = "";
+                if (msgUpdate) msgUpdate.classList.add('d-none');
+            } else {
+                if (divSearch) divSearch.classList.remove('d-none');
+                if (msgUpdate) msgUpdate.classList.remove('d-none');
+            }
+        }
+
+        optExisting.onchange = toggleMode;
+        optNew.onchange = toggleMode;
+
+        if (selectCustomer) {
+            selectCustomer.onchange = function() {
+                const customerId = this.value;
+                if (customerId) {
+                    const url = `/gestao/api/cliente/${customerId}/`;
+                    fetch(url)
+                        .then(response => {
+                            if (!response.ok) throw new Error("Erro ao buscar dados.");
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (inputName) { inputName.value = data.name; inputName.readOnly = true; }
+                            if (inputPhone) { inputPhone.value = data.phone; inputPhone.readOnly = true; }
+                            if (inputEmail) inputEmail.value = data.email || "";
+                        })
+                        .catch(err => console.error('Erro:', err));
+                } else {
+                    if (inputName) { inputName.value = ""; inputName.readOnly = false; }
+                    if (inputPhone) { inputPhone.value = ""; inputPhone.readOnly = false; }
+                    if (inputEmail) inputEmail.value = "";
+                }
+            };
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initEnrollmentForm);
+    document.addEventListener('turbo:render', initEnrollmentForm);
+</script>
+{% endblock %}

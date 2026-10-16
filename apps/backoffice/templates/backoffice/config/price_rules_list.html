@@ -1,0 +1,797 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <!-- Flash message container para operações AJAX -->
+    <div id="ajax-flash-container"></div>
+
+    <!-- Cabeçalho Principal -->
+    <div class="d-flex justify-content-between align-items-md-center flex-column flex-md-row pt-2 pb-3 mb-4 border-bottom gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'backoffice:arena_config' arena_slug=arena.slug %}" class="btn btn-sm btn-action rounded-circle d-inline-flex align-items-center justify-content-center p-0 flex-shrink-0" style="width: 34px; height: 34px;" title="Voltar para Configurações">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h2 mb-0 fs-3 fs-md-2">Regras de Preço Dinâmico</h1>
+            </div>
+            <p class="text-body-secondary small mb-0 ms-md-4 ps-md-2">
+                Defina valores especiais por horário, dias da semana ou quadras específicas.
+            </p>
+        </div>
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end ms-md-auto">
+            <button type="button" class="btn btn-action-primary" onclick="openNewPriceRuleModal();">
+                <i class="bi bi-plus-lg me-1"></i> Nova Regra
+            </button>
+        </div>
+    </div>
+
+    <!-- Banner Informativo -->
+    <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-2 gap-sm-3 mb-4 p-3 rounded-3">
+        <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 text-info mt-1"></i>
+        <div class="small">
+            <strong class="d-block mb-1">Prioridade de preços:</strong>
+            Regras de quadra têm prioridade sobre regras da arena, que têm prioridade sobre o preço padrão.
+        </div>
+    </div>
+
+    {% if rules %}
+        <!-- ==========================================
+             VISUALIZAÇÃO DESKTOP: TABELA (>= 768px)
+             ========================================== -->
+        <div class="card shadow-sm border-0 overflow-hidden d-none d-md-block mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="price-rule-thead">
+                            <tr>
+                                <th class="ps-4" style="width: 25%;">Nome da Regra</th>
+                                <th style="width: 20%;">Aplica-se a</th>
+                                <th style="width: 15%;">Preço Especial</th>
+                                <th style="width: 18%;">Horário</th>
+                                <th style="width: 14%;">Dias</th>
+                                <th class="text-end pe-4" style="width: 8%;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rule in rules %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rule-icon-box">
+                                            <i class="bi bi-cash-coin text-warning fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-body fs-6 d-block">{{ rule.name }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if rule.court %}
+                                        <span class="badge bg-secondary-subtle text-body border rounded-pill px-3 py-2 fw-semibold">
+                                            <i class="bi bi-grid-fill me-1 opacity-75"></i> {{ rule.court.name }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-semibold">
+                                            <i class="bi bi-collection me-1"></i> Todas as Quadras
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-success fs-6">
+                                        R$ {{ rule.price|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-body">
+                                        <i class="bi bi-clock text-primary me-1"></i> {{ rule.start_time|time:"H:i" }} às {{ rule.end_time|time:"H:i" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-body border rounded-pill px-2 py-1 small">
+                                        {{ rule.get_days_display_custom|default:"Todos os dias" }}
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-inline-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-action"
+                                                data-id="{{ rule.id }}"
+                                                data-name="{{ rule.name }}"
+                                                data-court="{{ rule.court_id|default:'' }}"
+                                                data-price="{{ rule.price|stringformat:'.2f' }}"
+                                                data-start-time="{{ rule.start_time|time:'H:i' }}"
+                                                data-end-time="{{ rule.end_time|time:'H:i' }}"
+                                                data-days="[{% for d in rule.days.all %}{{ d.number }}{% if not forloop.last %},{% endif %}{% endfor %}]"
+                                                data-url="{% url 'backoffice:price_rule_edit' arena_slug=arena.slug pk=rule.id %}"
+                                                onclick="openEditPriceRuleModal(this);"
+                                                title="Editar regra">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-action-danger"
+                                                data-id="{{ rule.id }}"
+                                                data-name="{{ rule.name }}"
+                                                data-url="{% url 'backoffice:price_rule_delete' arena_slug=arena.slug pk=rule.id %}"
+                                                onclick="openDeletePriceRuleModal(this);"
+                                                title="Excluir regra">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             VISUALIZAÇÃO MOBILE: CARDS (< 768px)
+             ========================================== -->
+        <div class="d-md-none mb-4">
+            <div class="d-flex flex-column gap-3">
+                {% for rule in rules %}
+                <div class="card shadow-sm border-0 rule-card-mobile border-start border-4 border-warning">
+                    <div class="card-body p-3">
+                        <!-- Top Bar: Court Badge & Special Price -->
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2 pb-2 border-bottom">
+                            <div>
+                                {% if rule.court %}
+                                    <span class="badge bg-secondary-subtle text-body border rounded-pill px-2 py-1 small fw-semibold">
+                                        <i class="bi bi-grid-fill me-1 opacity-75"></i> {{ rule.court.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small fw-semibold">
+                                        <i class="bi bi-collection me-1"></i> Todas as Quadras
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-success fs-6">
+                                    R$ {{ rule.price|floatformat:2 }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Rule Name with full breathing room -->
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="rule-icon-box flex-shrink-0" style="width: 34px; height: 34px;">
+                                <i class="bi bi-cash-coin text-warning fs-5"></i>
+                            </div>
+                            <h6 class="fw-bold mb-0 text-body fs-6 text-break">{{ rule.name }}</h6>
+                        </div>
+
+                        <!-- Schedule and Days in a clean key-value block -->
+                        <div class="bg-body-tertiary rounded-3 p-2 px-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light-subtle">
+                                <span class="text-body-secondary small d-flex align-items-center gap-1">
+                                    <i class="bi bi-clock text-primary"></i> Horário:
+                                </span>
+                                <span class="fw-semibold text-body small">
+                                    {{ rule.start_time|time:"H:i" }} às {{ rule.end_time|time:"H:i" }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-1">
+                                <span class="text-body-secondary small d-flex align-items-center gap-1">
+                                    <i class="bi bi-calendar-week text-warning"></i> Dias:
+                                </span>
+                                <span class="badge bg-body text-body border rounded-pill px-2 py-1 small">
+                                    {{ rule.get_days_display_custom|default:"Todos os dias" }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Full-width touch-friendly action buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-action flex-fill py-2 fw-semibold d-flex align-items-center justify-content-center gap-1"
+                                    data-id="{{ rule.id }}"
+                                    data-name="{{ rule.name }}"
+                                    data-court="{{ rule.court_id|default:'' }}"
+                                    data-price="{{ rule.price|stringformat:'.2f' }}"
+                                    data-start-time="{{ rule.start_time|time:'H:i' }}"
+                                    data-end-time="{{ rule.end_time|time:'H:i' }}"
+                                    data-days="[{% for d in rule.days.all %}{{ d.number }}{% if not forloop.last %},{% endif %}{% endfor %}]"
+                                    data-url="{% url 'backoffice:price_rule_edit' arena_slug=arena.slug pk=rule.id %}"
+                                    onclick="openEditPriceRuleModal(this);">
+                                <i class="bi bi-pencil"></i>
+                                <span>Editar</span>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-action-danger flex-fill py-2 fw-semibold d-flex align-items-center justify-content-center gap-1"
+                                    data-id="{{ rule.id }}"
+                                    data-name="{{ rule.name }}"
+                                    data-url="{% url 'backoffice:price_rule_delete' arena_slug=arena.slug pk=rule.id %}"
+                                    onclick="openDeletePriceRuleModal(this);">
+                                <i class="bi bi-trash3"></i>
+                                <span>Excluir</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    {% else %}
+        <!-- Estado Vazio -->
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5 text-center text-body-secondary">
+                <div class="rule-empty-icon mx-auto mb-3">
+                    <i class="bi bi-cash-coin fs-1 text-warning"></i>
+                </div>
+                <h4 class="fw-bold text-body mb-2">Nenhuma regra especial configurada</h4>
+                <p class="mb-3 text-body-secondary" style="max-width: 480px; margin: 0 auto;">
+                    No momento todas as reservas utilizam o preço padrão cadastrado na arena{% if arena.config.default_price %} (R$ {{ arena.config.default_price|floatformat:2 }}){% endif %}.
+                </p>
+                <button type="button" class="btn btn-action-primary px-4 py-2 fw-semibold" onclick="openNewPriceRuleModal();">
+                    <i class="bi bi-plus-lg me-1"></i> Criar Nova Regra
+                </button>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CADASTRAR / EDITAR REGRA DE PREÇO
+     ======================================================= -->
+<div class="modal fade" id="priceRuleModal" tabindex="-1" aria-labelledby="priceRuleModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-cash-coin fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="priceRuleModalTitle">Nova Regra de Preço</h5>
+                        <small class="text-body-secondary" id="priceRuleModalSubtitle">Configure os valores e horários diferenciados.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="priceRuleForm" method="post" novalidate>
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="priceRuleFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <div class="row g-3">
+                        <!-- Nome da Regra -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_rule_name">
+                                Nome da Regra <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="id_rule_name" class="form-control" placeholder="Ex: Horário Nobre, Fim de Semana, Manhã..." required>
+                            <div class="invalid-feedback small" id="err-name"></div>
+                        </div>
+
+                        <!-- Quadra Aplicável -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_rule_court">
+                                Aplica-se à Quadra
+                            </label>
+                            <select name="court" id="id_rule_court" class="form-select">
+                                <option value="">Todas as Quadras da Arena</option>
+                                {% for c in courts %}
+                                    <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-body-secondary" style="font-size: 0.75rem;">Deixe como "Todas" ou selecione uma quadra específica.</small>
+                            <div class="invalid-feedback small" id="err-court"></div>
+                        </div>
+
+                        <!-- Preço Especial -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_rule_price">
+                                Preço Especial (R$) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary">R$</span>
+                                <input type="number" name="price" id="id_rule_price" class="form-control" step="0.50" min="0" placeholder="0.00" required>
+                            </div>
+                            <small class="text-body-secondary" style="font-size: 0.75rem;">Valor por horário quando esta regra estiver em vigor.</small>
+                            <div class="invalid-feedback small" id="err-price"></div>
+                        </div>
+
+                        <!-- Horários: Início e Fim -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1">
+                                Faixa de Horário <span class="text-danger">*</span>
+                            </label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-body-tertiary" title="Início"><i class="bi bi-sun text-warning"></i></span>
+                                        <input type="time" name="start_time" id="id_rule_start_time" class="form-control" required>
+                                    </div>
+                                    <small class="text-body-secondary d-block" style="font-size: 0.75rem;">Início</small>
+                                    <div class="invalid-feedback small" id="err-start_time"></div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-body-tertiary" title="Fim"><i class="bi bi-moon-stars text-info"></i></span>
+                                        <input type="time" name="end_time" id="id_rule_end_time" class="form-control" required>
+                                    </div>
+                                    <small class="text-body-secondary d-block" style="font-size: 0.75rem;">Término</small>
+                                    <div class="invalid-feedback small" id="err-end_time"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dias da Semana Ativos -->
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                                <label class="form-label fw-bold small mb-0">
+                                    Dias da Semana Válidos <span class="text-danger">*</span>
+                                </label>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <button type="button" class="btn btn-sm btn-action py-0 px-2 small" onclick="selectAllDays();">
+                                        Todos
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-action py-0 px-2 small" onclick="selectWeekdays();">
+                                        Seg-Sex
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-action py-0 px-2 small" onclick="selectWeekend();">
+                                        Sáb-Dom
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-action py-0 px-2 small" onclick="clearAllDays();">
+                                        Limpar
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-body-secondary d-block mb-2" style="font-size: 0.78rem;">
+                                Selecione em quais dias este valor diferenciado será cobrado.
+                            </small>
+
+                            <div class="d-flex flex-wrap gap-2 pt-1" id="daysPillGroup">
+                                <div class="form-check p-0 m-0">
+                                    <input type="checkbox" class="btn-check day-pill-check" name="days" id="day_pill_0" value="0" autocomplete="off">
+                                    <label class="btn btn-action btn-sm rounded-pill px-3 py-1 cursor-pointer" for="day_pill_0">Segunda</label>
+                                </div>
+                                <div class="form-check p-0 m-0">
+                                    <input type="checkbox" class="btn-check day-pill-check" name="days" id="day_pill_1" value="1" autocomplete="off">
+                                    <label class="btn btn-action btn-sm rounded-pill px-3 py-1 cursor-pointer" for="day_pill_1">Terça</label>
+                                </div>
+                                <div class="form-check p-0 m-0">
+                                    <input type="checkbox" class="btn-check day-pill-check" name="days" id="day_pill_2" value="2" autocomplete="off">
+                                    <label class="btn btn-action btn-sm rounded-pill px-3 py-1 cursor-pointer" for="day_pill_2">Quarta</label>
+                                </div>
+                                <div class="form-check p-0 m-0">
+                                    <input type="checkbox" class="btn-check day-pill-check" name="days" id="day_pill_3" value="3" autocomplete="off">
+                                    <label class="btn btn-action btn-sm rounded-pill px-3 py-1 cursor-pointer" for="day_pill_3">Quinta</label>
+                                </div>
+                                <div class="form-check p-0 m-0">
+                                    <input type="checkbox" class="btn-check day-pill-check" name="days" id="day_pill_4" value="4" autocomplete="off">
+                                    <label class="btn btn-action btn-sm rounded-pill px-3 py-1 cursor-pointer" for="day_pill_4">Sexta</label>
+                                </div>
+                                <div class="form-check p-0 m-0">
+                                    <input type="checkbox" class="btn-check day-pill-check" name="days" id="day_pill_5" value="5" autocomplete="off">
+                                    <label class="btn btn-action btn-sm rounded-pill px-3 py-1 cursor-pointer" for="day_pill_5">Sábado</label>
+                                </div>
+                                <div class="form-check p-0 m-0">
+                                    <input type="checkbox" class="btn-check day-pill-check" name="days" id="day_pill_6" value="6" autocomplete="off">
+                                    <label class="btn btn-action btn-sm rounded-pill px-3 py-1 cursor-pointer" for="day_pill_6">Domingo</label>
+                                </div>
+                            </div>
+                            <div class="invalid-feedback small d-block" id="err-days"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4 fw-bold" id="btnSubmitPriceRule">
+                        <span class="btn-text">Salvar Regra</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAÇÃO DE EXCLUSÃO DE REGRA
+     ======================================================= -->
+<div class="modal fade" id="deletePriceRuleModal" tabindex="-1" aria-labelledby="deletePriceRuleModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="delete-icon-circle mx-auto mb-3">
+                    <i class="bi bi-trash3-fill fs-2 text-danger"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="deletePriceRuleModalTitle">Excluir Regra de Preço</h4>
+                <p class="lead mb-2 fs-6">
+                    Tem certeza que deseja excluir a regra <strong id="deletePriceRuleNameText" class="text-body"></strong>?
+                </p>
+                <p class="text-body-secondary small mb-4">
+                    Esta ação não pode ser desfeita e os horários voltarão a utilizar o preço padrão da arena.
+                </p>
+
+                <form id="deletePriceRuleForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-danger px-4 fw-bold" id="btnConfirmDeletePriceRule">
+                            <i class="bi bi-trash3 me-1"></i> Sim, Excluir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // URL de criação padrão
+    const URL_PRICERULE_CREATE = "{% url 'backoffice:price_rule_add' arena_slug=arena.slug %}";
+
+    function getPriceRuleModal() {
+        const el = document.getElementById('priceRuleModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getDeletePriceRuleModal() {
+        const el = document.getElementById('deletePriceRuleModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function clearFormErrors() {
+        const alertBox = document.getElementById('priceRuleFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+        const inputs = document.querySelectorAll('#priceRuleForm .form-control, #priceRuleForm .form-select');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+
+        const feedbacks = document.querySelectorAll('#priceRuleForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    function clearAllDays() {
+        const checks = document.querySelectorAll('.day-pill-check');
+        checks.forEach(c => c.checked = false);
+    }
+
+    function selectAllDays() {
+        const checks = document.querySelectorAll('.day-pill-check');
+        checks.forEach(c => c.checked = true);
+    }
+
+    function selectWeekdays() {
+        clearAllDays();
+        ['0', '1', '2', '3', '4'].forEach(day => {
+            const chk = document.getElementById(`day_pill_${day}`);
+            if (chk) chk.checked = true;
+        });
+    }
+
+    function selectWeekend() {
+        clearAllDays();
+        ['5', '6'].forEach(day => {
+            const chk = document.getElementById(`day_pill_${day}`);
+            if (chk) chk.checked = true;
+        });
+    }
+
+    // Abertura do Modal de Nova Regra
+    function openNewPriceRuleModal() {
+        const form = document.getElementById('priceRuleForm');
+        if (!form) return;
+        form.reset();
+        clearFormErrors();
+        selectAllDays();
+
+        form.action = URL_PRICERULE_CREATE;
+
+        document.getElementById('priceRuleModalTitle').textContent = "Nova Regra de Preço";
+        document.getElementById('priceRuleModalSubtitle').textContent = "Configure os valores e horários diferenciados.";
+        document.getElementById('btnSubmitPriceRule').querySelector('.btn-text').textContent = "Criar Regra";
+
+        document.getElementById('id_rule_name').value = '';
+        document.getElementById('id_rule_court').value = '';
+        document.getElementById('id_rule_price').value = '';
+        document.getElementById('id_rule_start_time').value = '18:00';
+        document.getElementById('id_rule_end_time').value = '23:00';
+
+        const modal = getPriceRuleModal();
+        if (modal) modal.show();
+    }
+
+    // Abertura do Modal de Edição de Regra
+    function openEditPriceRuleModal(btn) {
+        if (!btn) return;
+        const form = document.getElementById('priceRuleForm');
+        if (!form) return;
+        form.reset();
+        clearFormErrors();
+        clearAllDays();
+
+        const id = btn.getAttribute('data-id') || '';
+        const name = btn.getAttribute('data-name') || '';
+        const courtId = btn.getAttribute('data-court') || '';
+        const price = btn.getAttribute('data-price') || '';
+        const startTime = btn.getAttribute('data-start-time') || '';
+        const endTime = btn.getAttribute('data-end-time') || '';
+        const url = btn.getAttribute('data-url') || '';
+
+        let days = [];
+        try {
+            const rawDays = btn.getAttribute('data-days');
+            days = rawDays ? JSON.parse(rawDays) : [];
+        } catch (e) {
+            console.error("Erro ao converter dias da regra", e);
+        }
+
+        form.action = url;
+
+        document.getElementById('priceRuleModalTitle').textContent = "Editar Regra de Preço";
+        document.getElementById('priceRuleModalSubtitle').textContent = `Editando regra "${name}"`;
+        document.getElementById('btnSubmitPriceRule').querySelector('.btn-text').textContent = "Salvar Alterações";
+
+        document.getElementById('id_rule_name').value = name;
+        document.getElementById('id_rule_court').value = courtId;
+        document.getElementById('id_rule_price').value = price;
+        document.getElementById('id_rule_start_time').value = startTime;
+        document.getElementById('id_rule_end_time').value = endTime;
+
+        // Marca os dias da semana
+        days.forEach(dayNumber => {
+            const chk = document.getElementById(`day_pill_${dayNumber}`);
+            if (chk) chk.checked = true;
+        });
+
+        const modal = getPriceRuleModal();
+        if (modal) modal.show();
+    }
+
+    // Abertura do Modal de Confirmação de Exclusão
+    function openDeletePriceRuleModal(btn) {
+        if (!btn) return;
+        const form = document.getElementById('deletePriceRuleForm');
+        if (!form) return;
+
+        const name = btn.getAttribute('data-name') || '';
+        const url = btn.getAttribute('data-url') || '';
+
+        form.action = url;
+        document.getElementById('deletePriceRuleNameText').textContent = name;
+
+        const modal = getDeletePriceRuleModal();
+        if (modal) modal.show();
+    }
+
+    // Flash notification ao recarregar a tela
+    function initPriceRulesList() {
+        const savedFlash = sessionStorage.getItem('price_rule_flash_msg');
+        if (savedFlash) {
+            sessionStorage.removeItem('price_rule_flash_msg');
+            const flashContainer = document.getElementById('ajax-flash-container');
+            if (flashContainer) {
+                flashContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> ${savedFlash}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", initPriceRulesList);
+    document.addEventListener("turbo:render", initPriceRulesList);
+
+    // Manipuladores de Envio AJAX
+    document.addEventListener("submit", async function(e) {
+        // 1. Formulário de Cadastro/Edição de Regra
+        if (e.target && e.target.id === 'priceRuleForm') {
+            e.preventDefault();
+            const form = e.target;
+            clearFormErrors();
+
+            const submitBtn = document.getElementById('btnSubmitPriceRule');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getPriceRuleModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('price_rule_flash_msg', data.message || 'Regra de preço salva com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('priceRuleFormAlert');
+                    alertBox.classList.remove('d-none');
+
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.querySelector(`[name="${field}"]`);
+                            const feedback = document.getElementById(`err-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Ocorreu um erro ao salvar a regra. Verifique os dados inseridos.');
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                const alertBox = document.getElementById('priceRuleFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // 2. Formulário de Exclusão de Regra
+        if (e.target && e.target.id === 'deletePriceRuleForm') {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('btnConfirmDeletePriceRule');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Excluindo...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getDeletePriceRuleModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('price_rule_flash_msg', data.message || 'Regra de preço excluída com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Erro ao excluir regra.');
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                alert('Erro de conexão ao excluir regra.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    });
+</script>
+
+<style>
+    /* Cabeçalho da Tabela */
+    .price-rule-thead th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 700;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--bs-border-color);
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+    [data-bs-theme="dark"] .price-rule-thead th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-color: #2c323e !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+
+    /* Ícones das linhas */
+    .rule-icon-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background-color: rgba(255, 193, 7, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Ícone de Estado Vazio */
+    .rule-empty-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background-color: rgba(255, 193, 7, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Badges e Ícones dos Modais */
+    .modal-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background-color: rgba(255, 193, 7, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .delete-icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: rgba(220, 53, 69, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Estilização dos Pills de Dias da Semana */
+    .day-pill-check:checked + label {
+        background-color: #f59e0b !important;
+        border-color: #d97706 !important;
+        color: #0f172a !important;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+    }
+    [data-bs-theme="dark"] .day-pill-check:checked + label {
+        background-color: #f59e0b !important;
+        border-color: #f59e0b !important;
+        color: #0f172a !important;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+    }
+
+    /* Mobile Card Styling */
+    .rule-card-mobile {
+        background-color: var(--bs-card-bg);
+        border: 1px solid var(--bs-border-color) !important;
+        border-radius: 14px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    [data-bs-theme="dark"] .rule-card-mobile {
+        background-color: #1a1e27 !important;
+        border: 1px solid #2d3340 !important;
+    }
+    [data-bs-theme="dark"] .rule-card-mobile .bg-body-tertiary {
+        background-color: #141720 !important;
+    }
+
+    /* Tema Escuro para Modais */
+    [data-bs-theme="dark"] .modal-content {
+        background-color: #1a1d22 !important;
+        border: 1px solid #2d3340 !important;
+    }
+    [data-bs-theme="dark"] .modal-header,
+    [data-bs-theme="dark"] .modal-footer {
+        border-color: #2d3340 !important;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,729 @@
+{% extends "backoffice/base_dashboard.html" %}
+{% load l10n %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-4 mt-3 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                {% if is_editing %}Editar Agendamento #{{ booking.id }}{% else %}Novo Agendamento{% endif %}
+            </h1>
+            <p class="text-body-secondary mb-0">Preencha os dados abaixo para confirmar a reserva.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {% if is_editing and has_bank_payment %}
+                <a href="{% url 'backoffice:booking_bank_receipt' arena_slug=arena.slug pk=booking.id %}"
+                   target="_blank"
+                   class="btn btn-outline-primary rounded-pill px-3 shadow-sm d-inline-flex align-items-center gap-2 fw-semibold"
+                   title="Abrir o comprovante bancário oficial do Asaas em nova aba">
+                    <i class="bi bi-bank"></i>
+                    <span>Comprovante Bancário</span>
+                </a>
+            {% endif %}
+            <a href="{% url 'backoffice:dashboard' arena_slug=arena.slug %}?date={{ start_time|date:'Y-m-d' }}" class="btn btn-action">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <form method="post" id="bookingForm">
+        {% csrf_token %}
+
+        {{ form.start_time }}
+        {{ form.end_time }}
+        <div class="row g-4">
+
+            <div class="col-lg-8">
+
+                <!-- Dados do Cliente -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-transparent border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold text-uppercase text-body-secondary small mb-0">
+                            <i class="bi bi-person-badge me-2 text-primary"></i>Dados do Cliente
+                        </h6>
+                        <small class="text-body-secondary">Pesquise cliente cadastrado ou digite livremente</small>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="row g-3">
+                            <div class="col-md-6 position-relative">
+                                <label class="form-label fw-bold small d-flex justify-content-between align-items-center">
+                                    <span>Nome Completo</span>
+                                    <span class="text-muted fw-normal" style="font-size: 0.75rem;"><i class="bi bi-search me-1"></i>Pesquisa ativa</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-person text-body-secondary"></i></span>
+                                    {{ form.customer_name }}
+                                </div>
+                                <!-- Dropdown de Resultados da Pesquisa -->
+                                <div id="customerSearchResults" class="list-group shadow-lg position-absolute w-100 mt-1 d-none rounded-3" style="z-index: 1050; max-height: 250px; overflow-y: auto;">
+                                </div>
+                                <div id="customerSelectedBadge" class="mt-2 small text-success fw-bold d-none">
+                                    <i class="bi bi-check2-circle me-1"></i> Cliente selecionado do cadastro.
+                                    <a href="javascript:void(0)" class="text-muted text-decoration-underline ms-1 fw-normal" onclick="clearSelectedCustomer()">Limpar</a>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Celular (WhatsApp)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-whatsapp text-success"></i></span>
+                                    {{ form.customer_phone }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">CPF do Cliente</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-card-text text-body-secondary"></i></span>
+                                    <input type="text" name="cpf"
+                                           class="form-control border-start-0"
+                                           placeholder="000.000.000-00"
+                                           id="id_customer_cpf"
+                                           value="{{ booking.customer.cpf|default:'' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger mt-3 small mb-0">
+                                {{ form.non_field_errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Equipamentos e Extras -->
+                {% if equipments %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-transparent border-bottom-0 pt-4 px-4">
+                        <h6 class="fw-bold text-uppercase text-body-secondary small mb-0">
+                            <i class="bi bi-box-seam me-2 text-warning"></i>Equipamentos e Extras
+                        </h6>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="row g-3">
+
+                            {% for eq in equipments %}
+                            <div class="col-12 col-md-6">
+
+                                {% if eq.current_stock|default:0 > 0 or eq.id in selected_eq_ids %}
+
+                                    <label class="card h-100 border p-3 cursor-pointer hover-shadow transition-all position-relative" for="eq_{{ eq.id }}">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center">
+                                                <div class="icon-box bg-primary bg-opacity-15 text-primary rounded-circle me-3">
+                                                    {% if "Bola" in eq.name %}<i class="bi bi-circle-fill text-warning"></i>
+                                                    {% elif "Raquete" in eq.name %}<i class="bi bi-gem text-danger"></i>
+                                                    {% else %}<i class="bi bi-box-seam"></i>{% endif %}
+                                                </div>
+                                                <div>
+                                                    <span class="fw-bold d-block text-body">{{ eq.name }}</span>
+                                                    <small class="text-body-secondary fw-semibold">+ R$ {{ eq.rental_price|floatformat:2 }}</small>
+                                                    <span class="badge bg-body-tertiary text-body-secondary border ms-1" style="font-size: 0.68rem;">Restam: {{ eq.current_stock }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="form-check form-switch m-0">
+                                                <input type="checkbox"
+                                                       name="equipment_ids"
+                                                       value="{{ eq.id }}"
+                                                       id="eq_{{ eq.id }}"
+                                                       class="form-check-input fs-4 equipment-checkbox"
+                                                       data-price="{{ eq.rental_price|unlocalize }}"
+                                                       {% if eq.id in selected_eq_ids %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </label>
+
+                                {% else %}
+                                    <div class="card h-100 border bg-body-tertiary p-3 opacity-75">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center">
+                                                <div class="icon-box bg-secondary bg-opacity-15 text-secondary rounded-circle me-3">
+                                                    <i class="bi bi-slash-circle"></i>
+                                                </div>
+                                                <div>
+                                                    <span class="fw-bold d-block text-body-secondary text-decoration-line-through">{{ eq.name }}</span>
+                                                    <small class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>Estoque Vazio</small>
+                                                </div>
+                                            </div>
+                                            <div class="form-check form-switch m-0">
+                                                <input type="checkbox" class="form-check-input fs-4" disabled>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                            </div>
+                            {% endfor %}
+
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Status do Pagamento -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-transparent border-bottom-0 pt-4 px-4">
+                        <h6 class="fw-bold text-uppercase text-body-secondary small mb-0">
+                            <i class="bi bi-wallet2 me-2 text-info"></i>Status do Pagamento
+                        </h6>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="row g-3">
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="payment_status" id="status_pending" value="pending" autocomplete="off"
+                                    {% if is_editing and booking.payment_status == 'PENDING' %}checked{% endif %}
+                                    {% if is_editing and booking.payment_status == 'PAID' %}disabled{% endif %}>
+                                <label class="btn btn-outline-secondary w-100 py-3 d-flex flex-column align-items-center justify-content-center h-100 payment-status-btn payment-status-pending" for="status_pending">
+                                    <i class="bi bi-hourglass-split fs-3 mb-2"></i>
+                                    <span class="fw-bold">Pendente</span>
+                                    <small class="text-body-secondary d-none d-md-block status-subtext">Pagar depois</small>
+                                </label>
+                            </div>
+
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="payment_status" id="status_deposit" value="deposit" autocomplete="off"
+                                    {% if is_editing and booking.payment_status == 'PARTIAL' %}checked{% endif %}
+                                    {% if is_editing and booking.payment_status == 'PAID' %}disabled{% endif %}>
+                                <label class="btn btn-outline-warning w-100 py-3 d-flex flex-column align-items-center justify-content-center h-100 payment-status-btn payment-status-deposit" for="status_deposit">
+                                    <i class="bi bi-coin fs-3 mb-2"></i>
+                                    <span class="fw-bold">Sinal</span>
+                                    <small class="text-body-secondary d-none d-md-block status-subtext">50% Adiantado</small>
+                                </label>
+                            </div>
+
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="payment_status" id="status_paid" value="paid" autocomplete="off"
+                                    {% if not is_editing or booking.payment_status == 'PAID' %}checked{% endif %}
+                                    {% if is_editing and booking.payment_status == 'PAID' %}disabled{% endif %}>
+                                <label class="btn btn-outline-success w-100 py-3 d-flex flex-column align-items-center justify-content-center h-100 payment-status-btn payment-status-paid" for="status_paid">
+                                    <i class="bi bi-check-circle-fill fs-3 mb-2"></i>
+                                    <span class="fw-bold">Pago Total</span>
+                                    <small class="text-body-secondary d-none d-md-block status-subtext">Finalizado</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        {% if is_editing and has_bank_payment %}
+                            <div class="card border border-primary-subtle bg-primary bg-opacity-10 rounded-4 mt-4 p-3 shadow-xs">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px; min-width: 44px;">
+                                            <i class="bi bi-bank fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                <strong class="text-body fs-6">Comprovante Bancário Oficial (Asaas)</strong>
+                                                <span class="badge {% if booking.payment_status == 'PAID' %}bg-success{% elif booking.payment_status == 'PARTIAL' %}bg-warning text-dark{% else %}bg-secondary{% endif %} text-white">
+                                                    {{ booking.get_payment_status_display }}
+                                                </span>
+                                            </div>
+                                            <small class="text-body-secondary d-block mt-1">
+                                                ID da Cobrança: <code>{{ bank_payment.transaction_id }}</code>
+                                                {% if bank_payment.amount %} • Valor Cobrado: <strong>R$ {{ bank_payment.amount|floatformat:2 }}</strong>{% endif %}
+                                                {% if booking.amount_paid > 0 %} • Total Já Pago: <strong>R$ {{ booking.amount_paid|floatformat:2 }}</strong>{% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <a href="{% url 'backoffice:booking_bank_receipt' arena_slug=arena.slug pk=booking.id %}"
+                                       target="_blank"
+                                       class="btn btn-primary px-3 py-2 rounded-pill fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                                        <i class="bi bi-file-earmark-check-fill"></i>
+                                        <span>Abrir Comprovante do Banco</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% elif is_editing and booking.payment_status != 'PENDING' %}
+                            <div class="alert alert-secondary border-0 d-flex align-items-center rounded-3 mt-4 mb-0 py-3 px-3">
+                                <i class="bi bi-info-circle me-3 text-secondary fs-4"></i>
+                                <div>
+                                    <strong>Pagamento Presencial / Balcão:</strong>
+                                    <div class="small text-body-secondary">Esta reserva foi registrada diretamente no balcão da arena (sem emissão de cobrança bancária online via Asaas).</div>
+                                </div>
+                            </div>
+                        {% elif not is_editing %}
+                            <div class="alert alert-warning border-warning d-flex align-items-center rounded-3 mt-4 mb-0">
+                                <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                                <div>
+                                    <strong>Atenção ao Caixa:</strong>
+                                    Se o cliente estiver no local, certifique-se de receber o pagamento antes de confirmar.
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Resumo Lateral (Sticky) -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden sticky-top" style="top: 20px; z-index: 10;">
+
+                    <div class="card-header bg-primary text-white text-center py-4 booking-hero-header">
+                        <h2 class="fw-bold mb-0 display-5">{{ start_time|date:"H:i" }}</h2>
+                        <div class="text-white-50 text-uppercase letter-spacing-2 mt-1">
+                            {{ start_time|date:"l, d/m" }}
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4">
+
+                        <div class="booking-summary-box p-3 rounded-3 shadow-sm border mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-body-secondary">Quadra:</span>
+                                <span class="fw-bold text-body">{{ court.name }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-body-secondary">Preço Base:</span>
+                                <span class="fw-bold text-body">R$ {{ court_price|floatformat:2 }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                                <span class="text-body-secondary">Extras:</span>
+                                <span class="fw-bold text-primary" id="extras-total-display">+ R$ 0,00</span>
+                            </div>
+                        </div>
+
+                        <div class="text-center mb-4">
+                            <small class="text-uppercase fw-bold text-body-secondary letter-spacing-2">Total da Reserva</small>
+                            <div class="fw-bold text-body display-6" id="total-value-display">R$ 0,00</div>
+                        </div>
+
+                        <div class="alert alert-success border-0 text-center mb-4">
+                            <small class="text-uppercase fw-bold text-success opacity-75 d-block mb-1" style="font-size: 0.7rem;">A COBRAR DO CLIENTE AGORA</small>
+                            <div class="fw-bold fs-2 lh-1" id="display-amount">R$ 0,00</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit"
+                                    id="btn-confirmar"
+                                    form="bookingForm"
+                                    class="btn btn-action-primary btn-lg fw-bold py-3">
+                                <i class="bi bi-check-lg me-2"></i>Confirmar
+                            </button>
+
+                            {% if is_editing %}
+                                <a href="{% url 'backoffice:booking_delete' arena_slug=arena.slug pk=booking.pk %}" class="btn btn-action-danger py-2">
+                                    <i class="bi bi-trash me-2"></i>Cancelar Reserva
+                                </a>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<style>
+    .letter-spacing-2 { letter-spacing: 2px; font-size: 0.75rem; }
+    .icon-box { width: 45px; height: 45px; min-width: 45px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+    .cursor-pointer { cursor: pointer; }
+    .hover-shadow { transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+    .hover-shadow:hover {
+        box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.08) !important;
+        border-color: #64748b !important;
+        transform: translateY(-3px);
+    }
+    [data-bs-theme="dark"] .hover-shadow:hover {
+        border-color: var(--brand-color) !important;
+        box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.2) !important;
+    }
+    .booking-summary-box {
+        background-color: var(--bs-tertiary-bg);
+        border-color: var(--bs-border-color) !important;
+    }
+    [data-bs-theme="dark"] .booking-hero-header {
+        background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%) !important;
+    }
+    [data-bs-theme="dark"] .booking-summary-box {
+        background-color: #1a1e27 !important;
+        border-color: #2d3340 !important;
+    }
+    .sticky-top { transition: top 0.3s; }
+
+    /* Padronização de botões de Status de Pagamento e Hovers */
+    .payment-status-btn {
+        border-radius: 12px;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        cursor: pointer;
+        border-width: 1.5px;
+    }
+
+    /* Pendente */
+    .payment-status-pending {
+        border-color: #6c757d;
+        color: #6c757d;
+    }
+    .payment-status-pending:hover {
+        transform: translateY(-3px);
+        border-color: #adb5bd !important;
+        background-color: rgba(108, 117, 125, 0.15) !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 18px rgba(108, 117, 125, 0.3) !important;
+    }
+    .btn-check:checked + .payment-status-pending {
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 14px rgba(108, 117, 125, 0.35) !important;
+    }
+    .btn-check:checked + .payment-status-pending:hover {
+        transform: translateY(-3px);
+        background-color: #5c636a !important;
+        border-color: #565e64 !important;
+        box-shadow: 0 8px 24px rgba(108, 117, 125, 0.5) !important;
+    }
+    .btn-check:checked + .payment-status-pending .status-subtext {
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    /* Sinal */
+    .payment-status-deposit {
+        border-color: #d97706;
+        color: #b45309;
+    }
+    .payment-status-deposit:hover {
+        transform: translateY(-3px);
+        border-color: #b45309 !important;
+        background-color: rgba(217, 119, 6, 0.12) !important;
+        color: #92400e !important;
+        box-shadow: 0 6px 20px rgba(217, 119, 6, 0.25) !important;
+    }
+    [data-bs-theme="dark"] .payment-status-deposit {
+        border-color: #ffc107;
+        color: #ffc107;
+    }
+    [data-bs-theme="dark"] .payment-status-deposit:hover {
+        border-color: #ffca2c !important;
+        background-color: rgba(255, 193, 7, 0.18) !important;
+        color: #ffc107 !important;
+        box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4) !important;
+    }
+    .btn-check:checked + .payment-status-deposit {
+        background-color: #ffc107 !important;
+        border-color: #ffc107 !important;
+        color: #111315 !important;
+        box-shadow: 0 4px 14px rgba(255, 193, 7, 0.4) !important;
+    }
+    .btn-check:checked + .payment-status-deposit:hover {
+        transform: translateY(-3px);
+        background-color: #ffca2c !important;
+        border-color: #ffca2c !important;
+        color: #000000 !important;
+        box-shadow: 0 8px 26px rgba(255, 193, 7, 0.6) !important;
+    }
+    .btn-check:checked + .payment-status-deposit .status-subtext {
+        color: rgba(0, 0, 0, 0.75) !important;
+    }
+
+    /* Pago Total */
+    .payment-status-paid {
+        border-color: #198754;
+        color: #22c55e;
+    }
+    .payment-status-paid:hover {
+        transform: translateY(-3px);
+        border-color: #22c55e !important;
+        background-color: rgba(25, 135, 84, 0.18) !important;
+        color: #22c55e !important;
+        box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4) !important;
+    }
+    .btn-check:checked + .payment-status-paid {
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 14px rgba(25, 135, 84, 0.35) !important;
+    }
+    .btn-check:checked + .payment-status-paid:hover {
+        transform: translateY(-3px);
+        background-color: #157347 !important;
+        border-color: #157347 !important;
+        color: #ffffff !important;
+        filter: brightness(1.1);
+        box-shadow: 0 8px 26px rgba(25, 135, 84, 0.6) !important;
+    }
+    .btn-check:checked + .payment-status-paid .status-subtext {
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    /* Botão Confirmar Padronizado com Hover Dourado */
+    #btn-confirmar {
+        background-color: var(--brand-color, #ffc107) !important;
+        border-color: var(--brand-color, #ffc107) !important;
+        color: #111315 !important;
+        font-weight: 700;
+        border-radius: 12px;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 14px rgba(255, 193, 7, 0.35) !important;
+        cursor: pointer;
+    }
+    #btn-confirmar:hover {
+        background-color: #ffca2c !important;
+        border-color: #ffca2c !important;
+        color: #000000 !important;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(255, 193, 7, 0.6) !important;
+    }
+    #btn-confirmar:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3) !important;
+    }
+
+    /* Modos Dark refinados para alto contraste */
+    [data-bs-theme="dark"] .payment-status-pending {
+        background-color: rgba(255, 255, 255, 0.03);
+        border-color: #3b4252;
+        color: #cbd5e1;
+    }
+    [data-bs-theme="dark"] .payment-status-deposit {
+        background-color: rgba(255, 193, 7, 0.05);
+        border-color: #ffc107;
+        color: #ffc107;
+    }
+    [data-bs-theme="dark"] .payment-status-paid {
+        background-color: rgba(25, 135, 84, 0.05);
+        border-color: #198754;
+        color: #22c55e;
+    }
+</style>
+
+<script>
+    function initBookingCalculations() {
+        const PRECO_QUADRA = parseFloat("{{ court_price|unlocalize }}".replace(',', '.'));
+        const elExtrasTotal = document.getElementById('extras-total-display');
+        const elTotalValue = document.getElementById('total-value-display');
+        const elAmountToCharge = document.getElementById('display-amount');
+        const radioButtons = document.getElementsByName('payment_status');
+        const equipmentCheckboxes = document.querySelectorAll('.equipment-checkbox');
+
+        if (!elAmountToCharge) return;
+
+        function formatMoney(value) {
+            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function calculate() {
+            let extrasTotal = 0;
+            equipmentCheckboxes.forEach(chk => {
+                if (chk.checked) {
+                    let price = parseFloat(chk.getAttribute('data-price').replace(',', '.'));
+                    extrasTotal += price;
+                }
+            });
+
+            let totalBruto = PRECO_QUADRA + extrasTotal;
+            let selectedStatus = 'paid';
+            for (const radio of radioButtons) {
+                if (radio.checked) {
+                    selectedStatus = radio.value;
+                    break;
+                }
+            }
+
+            let cobranca = 0;
+            elAmountToCharge.className = "fw-bold fs-2 lh-1";
+
+            if (selectedStatus === 'pending') {
+                cobranca = 0;
+                elAmountToCharge.classList.add('text-body-secondary');
+                elAmountToCharge.innerText = "A Receber";
+            }
+            else if (selectedStatus === 'deposit') {
+                cobranca = totalBruto / 2;
+                elAmountToCharge.classList.add('text-warning');
+                elAmountToCharge.innerText = formatMoney(cobranca);
+            }
+            else {
+                cobranca = totalBruto;
+                elAmountToCharge.classList.add('text-success');
+                elAmountToCharge.innerText = formatMoney(cobranca);
+            }
+
+            if (elExtrasTotal) elExtrasTotal.innerText = "+ " + formatMoney(extrasTotal);
+            if (elTotalValue) elTotalValue.innerText = formatMoney(totalBruto);
+        }
+
+        equipmentCheckboxes.forEach(chk => chk.addEventListener('change', calculate));
+        if (radioButtons.length > 0) {
+            radioButtons.forEach(btn => btn.addEventListener('change', calculate));
+        }
+
+        const phoneInput = document.querySelector('input[name="customer_phone"]');
+        if (phoneInput && !phoneInput.dataset.maskInit) {
+            phoneInput.dataset.maskInit = "true";
+            phoneInput.addEventListener('input', function (e) {
+                let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
+                e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+            });
+        }
+
+        const cpfInput = document.getElementById('id_customer_cpf');
+        if (cpfInput && !cpfInput.dataset.maskInit) {
+            cpfInput.dataset.maskInit = "true";
+            cpfInput.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '').substring(0, 11);
+                e.target.value = value.replace(/(\d{3})(\d)/, '$1.$2')
+                                     .replace(/(\d{3})(\d)/, '$1.$2')
+                                     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            });
+        }
+
+        // --- AUTOCOMPLETE E PESQUISA DE CLIENTES (COM DIGITAÇÃO LIVRE) ---
+        const nameInput = document.querySelector('input[name="customer_name"]');
+        const searchResultsBox = document.getElementById('customerSearchResults');
+        const selectedBadge = document.getElementById('customerSelectedBadge');
+        const searchUrl = "{% url 'backoffice:api_customer_search' arena_slug=arena.slug %}";
+
+        let searchTimeout = null;
+
+        if (nameInput && searchResultsBox && !nameInput.dataset.searchInit) {
+            nameInput.dataset.searchInit = "true";
+            nameInput.setAttribute('autocomplete', 'off');
+
+            nameInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                clearTimeout(searchTimeout);
+
+                if (query.length < 2) {
+                    searchResultsBox.classList.add('d-none');
+                    searchResultsBox.innerHTML = '';
+                    return;
+                }
+
+                searchTimeout = setTimeout(async function() {
+                    try {
+                        const res = await fetch(`${searchUrl}?q=${encodeURIComponent(query)}`, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        const customers = data.customers || [];
+
+                        if (customers.length === 0) {
+                            searchResultsBox.innerHTML = `
+                                <div class="list-group-item py-2 px-3 text-body-secondary small bg-body-tertiary">
+                                    <i class="bi bi-info-circle me-1"></i> Nenhum cliente encontrado com este nome.
+                                    <div class="mt-1 text-primary fw-semibold"><i class="bi bi-pencil-square me-1"></i>Você pode continuar digitando para cadastrar como novo cliente!</div>
+                                </div>
+                            `;
+                            searchResultsBox.classList.remove('d-none');
+                            return;
+                        }
+
+                        let html = '';
+                        customers.forEach(c => {
+                            const safePhone = c.formatted_phone || c.phone || '';
+                            const safeCpf = c.cpf || '';
+
+                            html += `
+                                <a href="javascript:void(0)" class="list-group-item list-group-item-action py-2 px-3 d-flex justify-content-between align-items-center customer-item-option"
+                                   data-name="${c.name}" data-phone="${safePhone}" data-cpf="${safeCpf}">
+                                    <div>
+                                        <strong class="d-block text-body fs-6">${c.name}</strong>
+                                        <small class="text-body-secondary">
+                                            <i class="bi bi-whatsapp text-success me-1"></i>${safePhone}
+                                            ${safeCpf ? '<span class="ms-2"><i class="bi bi-card-text me-1"></i>CPF: ' + safeCpf + '</span>' : ''}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill px-2 py-1">
+                                        <i class="bi bi-check2"></i> Selecionar
+                                    </span>
+                                </a>
+                            `;
+                        });
+
+                        html += `
+                            <div class="list-group-item py-1 px-3 bg-body-tertiary text-body-secondary small border-top">
+                                <i class="bi bi-info-circle me-1"></i> Não está na lista? Continue digitando para cadastrar novo.
+                            </div>
+                        `;
+
+                        searchResultsBox.innerHTML = html;
+                        searchResultsBox.classList.remove('d-none');
+
+                        // Clique nas opções encontradas
+                        searchResultsBox.querySelectorAll('.customer-item-option').forEach(item => {
+                            item.addEventListener('click', function(ev) {
+                                ev.preventDefault();
+                                const selName = this.getAttribute('data-name');
+                                const selPhone = this.getAttribute('data-phone');
+                                const selCpf = this.getAttribute('data-cpf');
+
+                                nameInput.value = selName;
+                                if (phoneInput && selPhone) {
+                                    phoneInput.value = selPhone;
+                                    phoneInput.dispatchEvent(new Event('input'));
+                                }
+                                if (cpfInput && selCpf) {
+                                    cpfInput.value = selCpf;
+                                    cpfInput.dispatchEvent(new Event('input'));
+                                }
+
+                                searchResultsBox.classList.add('d-none');
+                                if (selectedBadge) selectedBadge.classList.remove('d-none');
+                            });
+                        });
+
+                    } catch (err) {
+                        console.error("Erro na busca de clientes:", err);
+                    }
+                }, 220);
+            });
+
+            // Fecha dropdown ao clicar fora
+            document.addEventListener('click', function(ev) {
+                if (!nameInput.contains(ev.target) && !searchResultsBox.contains(ev.target)) {
+                    searchResultsBox.classList.add('d-none');
+                }
+            });
+
+            // Reabre sugestões ao focar se houver resultados
+            nameInput.addEventListener('focus', function() {
+                if (this.value.trim().length >= 2 && searchResultsBox.children.length > 0) {
+                    searchResultsBox.classList.remove('d-none');
+                }
+            });
+        }
+
+        // Se o operador digitar o telefone primeiro, autocompleta se o cliente já for conhecido
+        if (phoneInput && !phoneInput.dataset.searchPhoneInit) {
+            phoneInput.dataset.searchPhoneInit = "true";
+            phoneInput.addEventListener('blur', async function() {
+                const rawDigits = this.value.replace(/\D/g, '');
+                if (rawDigits.length >= 10 && (!nameInput.value || nameInput.value.trim().length === 0)) {
+                    try {
+                        const res = await fetch(`${searchUrl}?q=${encodeURIComponent(rawDigits)}`, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.customers && data.customers.length === 1) {
+                                const c = data.customers[0];
+                                nameInput.value = c.name;
+                                if (cpfInput && c.cpf) {
+                                    cpfInput.value = c.cpf;
+                                    cpfInput.dispatchEvent(new Event('input'));
+                                }
+                                if (selectedBadge) selectedBadge.classList.remove('d-none');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Erro ao buscar cliente por telefone:", e);
+                    }
+                }
+            });
+        }
+
+        window.clearSelectedCustomer = function() {
+            if (selectedBadge) selectedBadge.classList.add('d-none');
+            if (nameInput) nameInput.focus();
+        };
+
+        calculate();
+    }
+
+    document.addEventListener('DOMContentLoaded', initBookingCalculations);
+    document.addEventListener('turbo:render', initBookingCalculations);
+</script>
+{% endblock %}

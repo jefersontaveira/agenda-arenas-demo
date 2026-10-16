@@ -1,0 +1,363 @@
+{% extends 'saas/base_saas.html' %}
+
+{% block title %}
+    {% if form.instance.pk %}Editar Arena: {{ form.instance.name }} | SaaS Master{% else %}Cadastrar Nova Arena | SaaS Master{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-2" style="max-width: 900px;">
+    <!-- Top Action / Back Button -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        {% if form.instance.pk %}
+        <a href="{% url 'saas:arena_detail' form.instance.pk %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> Cancelar e Voltar para a Arena
+        </a>
+        {% else %}
+        <a href="{% url 'saas:dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> Voltar ao Painel Geral
+        </a>
+        {% endif %}
+        <span class="badge bg-dark-subtle text-secondary border border-secondary border-opacity-25 px-3 py-2 rounded-pill">
+            <i class="bi bi-shield-lock me-1"></i> Área de Controle SaaS
+        </span>
+    </div>
+
+    <div class="glass-card p-4 p-md-5">
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+            <div class="rounded-3 p-3 {% if form.instance.pk %}bg-warning bg-opacity-10 text-warning{% else %}bg-primary bg-opacity-10 text-primary{% endif %}">
+                {% if form.instance.pk %}
+                <i class="bi bi-pencil-square fs-3"></i>
+                {% else %}
+                <i class="bi bi-building-add fs-3"></i>
+                {% endif %}
+            </div>
+            <div>
+                <h1 class="h4 fw-bold text-white mb-1">
+                    {% if form.instance.pk %}Editar Dados da Arena & Plano{% else %}Cadastrar Nova Arena{% endif %}
+                </h1>
+                <p class="text-secondary small mb-0">
+                    {% if form.instance.pk %}
+                    Atualize dados cadastrais, plano mensal, dia de vencimento e dados operacionais.
+                    {% else %}
+                    Cadastre um novo estabelecimento parceiro, defina o contrato mensal e libere os acessos de gestão.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <form method="post" id="arenaForm">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2 small mb-4">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- SEÇÃO 1: Identificação da Arena -->
+            <div class="mb-4">
+                <h5 class="h6 fw-bold text-warning border-bottom border-secondary border-opacity-25 pb-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-building"></i> 1. Identificação da Arena
+                </h5>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-12 col-md-7">
+                        <label class="form-label small fw-bold text-secondary">
+                            Nome da Arena <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12 col-md-5">
+                        <label class="form-label small fw-bold text-secondary">
+                            Slug / Identificador na URL <span class="text-danger">*</span>
+                        </label>
+                        {{ form.slug }}
+                        <div class="text-secondary mt-1" style="font-size: 0.72rem;">
+                            URL pública: <code class="text-warning">/app/<span id="slugPreview">{{ form.instance.slug|default:"sua-arena" }}</span>/</code>
+                        </div>
+                        {% if form.slug.errors %}<div class="text-danger small mt-1">{{ form.slug.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-secondary">CNPJ da Empresa</label>
+                        {{ form.cnpj }}
+                        {% if form.cnpj.errors %}<div class="text-danger small mt-1">{{ form.cnpj.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Telefone Comercial / Fixo da Arena</label>
+                        {{ form.contact_phone }}
+                        {% if form.contact_phone.errors %}<div class="text-danger small mt-1">{{ form.contact_phone.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-secondary">Endereço Completo</label>
+                        {{ form.address }}
+                        {% if form.address.errors %}<div class="text-danger small mt-1">{{ form.address.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Duração Padrão do Slot (minutos)</label>
+                        {{ form.slot_duration }}
+                        <small class="text-secondary d-block" style="font-size: 0.72rem;">Intervalo padrão de agendamento (ex: 60 para 1 hora).</small>
+                        {% if form.slot_duration.errors %}<div class="text-danger small mt-1">{{ form.slot_duration.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Preço Base por Hora (R$)</label>
+                        {{ form.default_price }}
+                        <small class="text-secondary d-block" style="font-size: 0.72rem;">Valor de referência inicial para as quadras.</small>
+                        {% if form.default_price.errors %}<div class="text-danger small mt-1">{{ form.default_price.errors }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO 2: Contato e Proprietário -->
+            <div class="mb-4 pt-2">
+                <h5 class="h6 fw-bold text-warning border-bottom border-secondary border-opacity-25 pb-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-person-vcard"></i> 2. Dados do Proprietário & Contato
+                </h5>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-secondary">
+                            Nome Completo do Dono / Gestor <span class="text-danger">*</span>
+                        </label>
+                        {{ form.owner_name }}
+                        {% if form.owner_name.errors %}<div class="text-danger small mt-1">{{ form.owner_name.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-secondary">WhatsApp / Telefone do Proprietário</label>
+                        {{ form.owner_phone }}
+                        {% if form.owner_phone.errors %}<div class="text-danger small mt-1">{{ form.owner_phone.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-secondary">E-mail do Proprietário</label>
+                        {{ form.owner_email }}
+                        <small class="text-secondary d-block" style="font-size: 0.72rem;">
+                            Utilizado para comunicações, cobranças e como login de acesso ao Backoffice.
+                        </small>
+                        {% if form.owner_email.errors %}<div class="text-danger small mt-1">{{ form.owner_email.errors }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO 3: Acesso ao Sistema e Usuários -->
+            <div class="mb-4 pt-2">
+                <h5 class="h6 fw-bold text-warning border-bottom border-secondary border-opacity-25 pb-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-key-fill"></i> 3. Acesso à Gestão (Login no Sistema)
+                </h5>
+
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                    <div class="form-check form-switch mb-2">
+                        {{ form.create_owner_user }}
+                        <label class="form-check-label fw-bold text-white ms-2" for="{{ form.create_owner_user.id_for_label }}">
+                            Criar ou vincular conta de acesso para o proprietário
+                        </label>
+                    </div>
+                    <div class="text-secondary small ms-4 mb-3">
+                        Garante que o dono tenha um login criado automaticamente com o e-mail informado para acessar o painel <code>/gestao/</code>.
+                    </div>
+
+                    <div id="passwordWrapper" class="ms-4 row g-2 align-items-center">
+                        <div class="col-12 col-md-8">
+                            <label class="form-label small fw-bold text-secondary">Senha Inicial de Acesso</label>
+                            <div class="input-group">
+                                {{ form.owner_password }}
+                                <button class="btn btn-outline-secondary" type="button" id="btnTogglePassword" title="Mostrar/Ocultar Senha">
+                                    <i class="bi bi-eye" id="eyeIcon"></i>
+                                </button>
+                                <button class="btn btn-outline-warning text-warning" type="button" id="btnGeneratePassword" title="Gerar Senha Segura">
+                                    <i class="bi bi-magic me-1"></i> Gerar
+                                </button>
+                            </div>
+                            <small class="text-secondary d-block mt-1" style="font-size: 0.72rem;">
+                                Deixe em branco para usar a senha padrão <code>Arena@2025</code>.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-secondary">
+                            Vincular Outros Usuários Existentes à Arena
+                        </label>
+                        {{ form.users }}
+                        <small class="text-secondary d-block mt-1" style="font-size: 0.72rem;">
+                            Selecione usuários já cadastrados no sistema que também poderão gerenciar esta arena (Segure <kbd class="bg-dark">Ctrl</kbd> para selecionar mais de um).
+                        </small>
+                        {% if form.users.errors %}<div class="text-danger small mt-1">{{ form.users.errors }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO 4: Contrato SaaS & Faturamento -->
+            <div class="mb-4 pt-2">
+                <h5 class="h6 fw-bold text-warning border-bottom border-secondary border-opacity-25 pb-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-cash-stack"></i> 4. Contrato SaaS & Cobrança
+                </h5>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-secondary">
+                            Valor Mensal Contratado (R$)
+                        </label>
+                        {{ form.monthly_fee }}
+                        <small class="text-secondary d-block" style="font-size: 0.72rem;">Valor recorrente cobrado da arena pelo uso da plataforma.</small>
+                        {% if form.monthly_fee.errors %}<div class="text-danger small mt-1">{{ form.monthly_fee.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-secondary">
+                            Dia de Vencimento do Mês
+                        </label>
+                        {{ form.due_day }}
+                        <small class="text-secondary d-block" style="font-size: 0.72rem;">Dia preferencial para vencimento da fatura (ex: 5, 10, 15, 20).</small>
+                        {% if form.due_day.errors %}<div class="text-danger small mt-1">{{ form.due_day.errors }}</div>{% endif %}
+                    </div>
+
+                    {% if not form.instance.pk %}
+                    <div class="col-12">
+                        <div class="p-3 rounded-3" style="background: rgba(245, 158, 11, 0.05); border: 1px dashed rgba(245, 158, 11, 0.3);">
+                            <div class="form-check form-switch">
+                                {{ form.generate_first_invoice }}
+                                <label class="form-check-label fw-bold text-warning ms-2" for="{{ form.generate_first_invoice.id_for_label }}">
+                                    Gerar primeira fatura de mensalidade deste mês imediatamente
+                                </label>
+                            </div>
+                            <div class="text-secondary small ms-4">
+                                Se marcado, uma cobrança pendente no valor contratado será criada automaticamente no controle financeiro.
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-12 mt-3">
+                        <div class="form-check form-switch p-3 rounded-3" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+                            {{ form.is_active }}
+                            <label class="form-check-label fw-bold text-white ms-2" for="{{ form.is_active.id_for_label }}">
+                                Arena Ativa no Sistema
+                            </label>
+                            <div class="text-secondary small ms-2">
+                                Mantenha marcado para permitir acesso. Desmarque para bloquear por inadimplência ou encerramento de contrato.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 pt-3 border-top border-secondary border-opacity-25">
+                {% if form.instance.pk %}
+                <a href="{% url 'saas:arena_detail' form.instance.pk %}" class="btn btn-outline-secondary px-4 rounded-pill">
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-warning px-4 rounded-pill text-dark fw-bold">
+                    <i class="bi bi-check-lg me-1"></i> Salvar Alterações
+                </button>
+                {% else %}
+                <a href="{% url 'saas:dashboard' %}" class="btn btn-outline-secondary px-4 rounded-pill">
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-warning px-4 rounded-pill text-dark fw-bold shadow">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Cadastrar Arena
+                </button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const nameInput = document.getElementById('id_arena_name');
+        const slugInput = document.getElementById('id_arena_slug');
+        const slugPreview = document.getElementById('slugPreview');
+        const passwordInput = document.getElementById('id_owner_password');
+        const btnTogglePassword = document.getElementById('btnTogglePassword');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const btnGeneratePassword = document.getElementById('btnGeneratePassword');
+        const createOwnerUserCheck = document.getElementById('id_create_owner_user');
+        const passwordWrapper = document.getElementById('passwordWrapper');
+
+        let isSlugManuallyEdited = Boolean(slugInput && slugInput.value.trim().length > 0);
+
+        function slugifyText(text) {
+            return text
+                .toString()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // remove acentos
+                .replace(/[^a-z0-9 -]/g, '')     // remove caracteres especiais
+                .trim()
+                .replace(/\s+/g, '-')            // troca espacos por hifens
+                .replace(/-+/g, '-');            // remove hifens repetidos
+        }
+
+        if (nameInput && slugInput) {
+            nameInput.addEventListener('input', function () {
+                if (!isSlugManuallyEdited) {
+                    const generated = slugifyText(this.value);
+                    slugInput.value = generated;
+                    if (slugPreview) {
+                        slugPreview.textContent = generated || 'sua-arena';
+                    }
+                }
+            });
+
+            slugInput.addEventListener('input', function () {
+                isSlugManuallyEdited = this.value.trim().length > 0;
+                if (slugPreview) {
+                    slugPreview.textContent = slugifyText(this.value) || 'sua-arena';
+                }
+            });
+        }
+
+        // Toggle Senha
+        if (btnTogglePassword && passwordInput) {
+            btnTogglePassword.addEventListener('click', function () {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                eyeIcon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+            });
+        }
+
+        // Gerar Senha Aleatória
+        if (btnGeneratePassword && passwordInput) {
+            btnGeneratePassword.addEventListener('click', function () {
+                const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%';
+                let newPassword = 'Arena@';
+                for (let i = 0; i < 4; i++) {
+                    newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                passwordInput.value = newPassword;
+                passwordInput.setAttribute('type', 'text');
+                if (eyeIcon) eyeIcon.className = 'bi bi-eye-slash';
+            });
+        }
+
+        // Toggle bloco de senha conforme checkbox do dono
+        if (createOwnerUserCheck && passwordWrapper) {
+            function updatePasswordVisibility() {
+                if (createOwnerUserCheck.checked) {
+                    passwordWrapper.style.opacity = '1';
+                    passwordWrapper.style.pointerEvents = 'auto';
+                } else {
+                    passwordWrapper.style.opacity = '0.4';
+                    passwordWrapper.style.pointerEvents = 'none';
+                }
+            }
+            createOwnerUserCheck.addEventListener('change', updatePasswordVisibility);
+            updatePasswordVisibility();
+        }
+    });
+</script>
+{% endblock %}

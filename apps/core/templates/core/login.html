@@ -1,0 +1,297 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão da Arena - Entrar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.92)), url('{% static "img/login_bg.jpg" %}') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            position: relative;
+            color: #fff;
+        }
+        .login-card h4 {
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .login-card .text-muted {
+            color: #e2e8f0 !important;
+        }
+        .btn-brand {
+            background-color: #FFC107;
+            color: #212529;
+            font-weight: bold;
+            border: none;
+            transition: all 0.3s;
+        }
+        .btn-brand:hover {
+            background-color: #ffca2c;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        }
+
+        /* Form Controls Glassmorphism */
+        .form-label {
+            color: #f8f9fa !important;
+            letter-spacing: 0.5px;
+        }
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            color: #fff !important;
+        }
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
+            border-color: #FFC107 !important;
+            background-color: rgba(255, 255, 255, 0.3) !important;
+        }
+        
+        /* Input group eye button */
+        .btn-toggle-password {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-left: none;
+            color: #fff;
+            transition: all 0.2s;
+        }
+        .btn-toggle-password:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            color: #FFC107;
+        }
+        .input-group:focus-within .btn-toggle-password {
+            border-color: #FFC107;
+        }
+        .input-group:focus-within .form-control {
+            border-right-color: transparent !important;
+        }
+        
+        .link-secondary {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .link-secondary:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        /* Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(26,26,26,0.95) 0%, rgba(45,52,54,0.95) 100%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pulsing-icon {
+            width: 80px;
+            height: 80px;
+            background-color: #FFC107;
+            color: #212529;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 1.5s infinite ease-in-out;
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.5);
+            margin-bottom: 20px;
+        }
+
+        /* Shake animation for errors */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+            100% { transform: translateX(0); }
+        }
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="pulsing-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-trophy-fill" viewBox="0 0 16 16">
+            <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5c0 .538-.012 1.05-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33.076 33.076 0 0 1 2.5.5zm.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935zm10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.589-.388 2.885-.72 3.935z"/>
+        </svg>
+    </div>
+    <h5 class="text-white fw-light">Acessando a Arena...</h5>
+</div>
+
+<div class="login-card">
+    <div class="text-center mb-4">
+        <div class="bg-dark text-warning rounded-3 d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-trophy-fill" viewBox="0 0 16 16">
+                <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5c0 .538-.012 1.05-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33.076 33.076 0 0 1 2.5.5zm.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935zm10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.589-.388 2.885-.72 3.935z"/>
+            </svg>
+        </div>
+        <h4>Gestão de Arena</h4>
+        <p class="text-muted small">Entre para gerenciar suas quadras</p>
+    </div>
+
+    <form method="post" action="{{ request.get_full_path }}" id="login-form">
+        {% csrf_token %}
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} py-2 small text-center rounded-3 bg-{{ message.tags }} text-white border-0 opacity-75">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if form.errors %}
+            <div class="alert alert-danger py-2 small text-center rounded-3 bg-danger text-white border-0 opacity-75 shake">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% empty %}
+                    E-mail ou senha incorretos.
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <div id="error-alert" class="alert alert-danger py-2 small text-center rounded-3 bg-danger text-white border-0 opacity-75 d-none">
+            E-mail ou senha incorretos.
+        </div>
+
+        <!-- Box de Credenciais para Visitantes do Portfolio -->
+        <div class="p-3 mb-3 rounded-3" style="background: rgba(255, 193, 7, 0.12); border: 1px dashed rgba(255, 193, 7, 0.45);">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="small fw-bold text-warning d-flex align-items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-key-fill" viewBox="0 0 16 16">
+                        <path d="M3.5 11.5a3.5 3.5 0 1 1 3.163-5H14L15.5 8 14 9.5l-1-1-1 1-1-1-1 1-1.337-1.337A3.5 3.5 0 0 1 3.5 11.5zM3 8a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/>
+                    </svg>
+                    Acesso Demonstrativo
+                </span>
+                <button type="button" class="btn btn-sm btn-warning text-dark fw-bold py-0 px-2" style="font-size: 0.75rem;" onclick="fillDemoCredentials()">Preencher 1-Clique</button>
+            </div>
+            <div class="small" style="font-size: 0.8rem; line-height: 1.4;">
+                <div class="text-white"><strong>E-mail:</strong> <code class="text-warning">gestor.demo@arenaexemplo.com</code></div>
+                <div class="text-white"><strong>Senha:</strong> <code class="text-warning">demo1234</code></div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold small">E-mail</label>
+            <input type="text" name="username" id="id_username" class="form-control form-control-lg" placeholder="Digite seu e-mail" required autofocus>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold small">Senha</label>
+            <div class="input-group">
+                <input type="password" name="password" id="id_password" class="form-control form-control-lg border-end-0" placeholder="••••••••" required>
+                <button class="btn btn-toggle-password" type="button" id="btn-toggle-password" tabindex="-1" title="Mostrar senha">
+                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
+                      <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                      <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end mb-4">
+            <a href="{% url 'password_reset' %}" class="small link-secondary">
+                Esqueceu a senha?
+            </a>
+        </div>
+
+        <button type="submit" class="btn btn-brand w-100 btn-lg rounded-pill mb-3">Entrar no Sistema</button>
+
+        <div class="text-center border-top border-secondary pt-3">
+            <a href="/" class="link-secondary small">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-1" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                </svg>
+                Voltar para o site principal
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Eye toggle
+    document.getElementById('btn-toggle-password').addEventListener('click', function() {
+        const pwd = document.getElementById('id_password');
+        const eye = document.getElementById('eye-icon');
+        if (pwd.type === 'password') {
+            pwd.type = 'text';
+            eye.innerHTML = '<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755l-.809-.805zm-4.652-4.652L7.202 5.082C7.458 5.029 7.724 5 8 5c1.657 0 3 1.343 3 3 0 .276-.029.542-.082.798l-1.504-1.504a1.5 1.5 0 0 0-2.121-2.121z"/><path d="M1.5 1.5l13 13-1.414 1.414-2.825-2.825A7.03 7.03 0 0 1 8 13.5c-5 0-8-5.5-8-5.5s1.29-2.373 3.518-3.957L1.5 1.5zm1.538 3.957c.563-.44 1.226-.856 1.956-1.224L6.16 5.4a3 3 0 0 0 3.934 3.935l1.967 1.967A13.13 13.13 0 0 1 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>'; // eye-slash
+        } else {
+            pwd.type = 'password';
+            eye.innerHTML = '<path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>'; // eye
+        }
+    });
+
+    // Loading overlay no submit natural do formulário
+    document.getElementById('login-form').addEventListener('submit', function() {
+        const btn = this.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.innerHTML = 'Acessando a Arena...';
+        }
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.classList.add('active');
+        }
+    });
+
+    function fillDemoCredentials() {
+        const userInput = document.getElementById('id_username') || document.querySelector('input[name="username"]');
+        const passInput = document.getElementById('id_password');
+        if (userInput) {
+            userInput.value = 'gestor.demo@arenaexemplo.com';
+            userInput.focus();
+        }
+        if (passInput) {
+            passInput.value = 'demo1234';
+        }
+    }
+</script>
+
+</body>
+</html>

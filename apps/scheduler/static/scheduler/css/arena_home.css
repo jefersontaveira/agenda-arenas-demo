@@ -1,0 +1,169 @@
+
+:root {
+    --brand-color: #FFC107; /* Amarelo */
+    --brand-dark: #212529;
+    --brand-light: #f8f9fa;
+    --card-radius: 20px;
+}
+
+body {
+    background-color: #f4f7f6;
+    font-family: 'Segoe UI', Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--brand-dark);
+}
+
+/* Hero Section */
+.hero-section {
+    position: relative;
+    height: 350px;
+    background: url('https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=1000&auto=format&fit=crop') center/cover no-repeat;
+    border-bottom-left-radius: 30px;
+    border-bottom-right-radius: 30px;
+    overflow: hidden;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0; left: 0; w-100; h-100;
+    width: 100%; height: 100%;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8));
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 20px;
+}
+
+/* Botões Personalizados */
+.btn-brand {
+    background-color: var(--brand-color);
+    color: var(--brand-dark);
+    font-weight: 700;
+    border: none;
+    transition: all 0.3s ease;
+}
+.btn-brand:hover {
+    filter: brightness(0.92);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.btn-outline-brand {
+    background-color: transparent;
+    border: 2px solid rgba(255,255,255,0.8);
+    color: white;
+    font-weight: 600;
+}
+
+/* --- ESTILIZAÇÃO DO CALENDÁRIO (FLATPICKR) --- */
+
+/* Cor do dia selecionado (Bolinha Amarela) */
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected.inRange,
+.flatpickr-day.startRange.inRange,
+.flatpickr-day.endRange.inRange,
+.flatpickr-day.selected:focus,
+.flatpickr-day.startRange:focus,
+.flatpickr-day.endRange:focus,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover {
+    background: var(--brand-color) !important;
+    border-color: var(--brand-color) !important;
+    color: var(--brand-dark) !important; /* Texto preto para contraste */
+    font-weight: bold;
+}
+
+/* Cor do dia "Hoje" (Borda Amarela) */
+.flatpickr-day.today {
+    border-color: var(--brand-color) !important;
+}
+.flatpickr-day.today:hover {
+    background: var(--brand-color) !important;
+    color: black !important;
+}
+
+/* Cabeçalho do Calendário (Mês/Ano) */
+.flatpickr-calendar.arrowTop:before,
+.flatpickr-calendar.arrowTop:after {
+    border-bottom-color: var(--brand-dark) !important;
+}
+
+/* Ajuste de fonte e bordas arredondadas */
+.flatpickr-calendar {
+    font-family: 'Segoe UI', Roboto, sans-serif !important;
+    border-radius: 15px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    border: none !important;
+}
+/* Efeito ao passar o mouse ou clicar no card de data */
+.position-relative:active {
+    transform: scale(0.98);
+    transition: transform 0.1s;
+}
+
+/* Garante que o cursor mostre que é clicável */
+input[type="date"] {
+    cursor: pointer;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover,
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+    color: #9c9c9c !important; /* Um cinza médio (antes era muito claro) */
+    opacity: 1 !important;      /* Remove a transparência padrão para a cor pegar bem */
+    background: transparent !important;
+    border-color: transparent !important;
+    cursor: not-allowed;        /* Mostra o ícone de bloqueio se passar o mouse */
+}
+
+/* Cards Modernos */
+.modern-card {
+    border: none;
+    border-radius: var(--card-radius);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    background: white;
+    transition: transform 0.2s;
+}
+
+/* Chips de Modalidade */
+.modality-btn {
+    border-radius: 50px;
+    padding: 10px 24px;
+    font-weight: 600;
+    border: 1px solid #eee;
+    background: white;
+    color: #666;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: inline-block;
+}
+.modality-btn.active {
+    background-color: var(--brand-dark);
+    color: var(--brand-color);
+    border-color: var(--brand-dark);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Card de Horário */
+.slot-card {
+    border-radius: var(--card-radius);
+    border: 1px solid rgba(0,0,0,0.03);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    transition: transform 0.2s;
+}
+.slot-card:active { transform: scale(0.98); }
+
+/* Barra de rolagem oculta */
+.modality-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+.modality-scroll::-webkit-scrollbar { display: none; }

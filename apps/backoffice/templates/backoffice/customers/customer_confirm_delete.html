@@ -1,0 +1,30 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<div class="container-fluid py-5 d-flex justify-content-center">
+    <div class="card shadow-sm border-0" style="max-width: 500px; width: 100%;">
+        <div class="card-body text-center p-5">
+            <div class="mb-4">
+                <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 4rem;"></i>
+            </div>
+            
+            <h3 class="mb-3">Excluir Cliente?</h3>
+            <p class="text-body-secondary mb-4">
+                Tem certeza que deseja excluir o cliente <strong>{{ customer.name }}</strong>? Esta ação não pode ser desfeita e todas as reservas associadas a este cliente poderão ser afetadas ou ficar sem referência.
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                    <a href="{% url 'backoffice:customer_list' arena_slug=arena.slug %}" class="btn btn-light px-4">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="bi bi-trash me-2"></i>Sim, excluir cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,292 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap gap-2 align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <div>
+        <h1 class="h2 mb-1">{% if is_editing %}Editar{% else %}Nova{% endif %} Modalidade</h1>
+        <p class="text-body-secondary small mb-0">Cadastre ou edite um esporte com seu respectivo emoji.</p>
+    </div>
+    <a href="{% url 'backoffice:modality_list' arena_slug=arena.slug %}" class="btn btn-action">
+        <i class="bi bi-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form method="post" id="modality-form">
+                    {% csrf_token %}
+
+                    <!-- Live Preview Box -->
+                    <div class="preview-box p-4 rounded-3 text-center mb-4 border">
+                        <small class="text-uppercase fw-bold text-body-secondary d-block mb-2" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                            Pré-visualização
+                        </small>
+                        <div class="d-inline-flex align-items-center gap-3 bg-body p-3 rounded-pill shadow-sm border px-4">
+                            <span id="preview-emoji" class="display-6 line-height-1">
+                                {{ form.emoji.value|default:"🏐" }}
+                            </span>
+                            <span id="preview-name" class="fs-4 fw-bold text-body">
+                                {{ form.name.value|default:"Nome da Modalidade" }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <h6 class="text-uppercase text-body-secondary fw-bold small mb-3">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> Dados do Esporte
+                    </h6>
+
+                    <!-- Nome Field -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" for="id_name">
+                            {{ form.name.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Emoji Field & Selector -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold mb-0" for="id_emoji">
+                                {{ form.emoji.label }} <span class="text-danger">*</span>
+                            </label>
+                            <small class="text-body-secondary">Clique em um emoji abaixo ou digite o seu</small>
+                        </div>
+
+                        <div class="input-group mb-3" style="max-width: 220px;">
+                            <span class="input-group-text bg-body-tertiary">Emoji Selecionado</span>
+                            {{ form.emoji }}
+                        </div>
+                        {% if form.emoji.errors %}
+                            <div class="text-danger small mt-1">{{ form.emoji.errors.0 }}</div>
+                        {% endif %}
+
+                        <!-- Emoji Grid Picker -->
+                        <div class="emoji-picker-container p-3 rounded-3 border bg-body-tertiary">
+                            <div class="fw-bold small text-body-secondary mb-2">
+                                <i class="bi bi-hand-index-thumb me-1 text-warning"></i> Selecione o esporte:
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-2 emoji-grid" id="emoji-grid">
+                                <button type="button" class="btn btn-emoji" data-emoji="🏐" data-name="Vôlei" title="Vôlei">
+                                    <span class="emoji-icon">🏐</span>
+                                    <span class="emoji-label">Vôlei</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🏖️" data-name="Beach Tennis" title="Beach Tennis">
+                                    <span class="emoji-icon">🏖️</span>
+                                    <span class="emoji-label">Beach Tennis</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="⚽" data-name="Futebol" title="Futebol">
+                                    <span class="emoji-icon">⚽</span>
+                                    <span class="emoji-label">Futebol</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🥅" data-name="Futevôlei" title="Futevôlei">
+                                    <span class="emoji-icon">🥅</span>
+                                    <span class="emoji-label">Futevôlei</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🎾" data-name="Tênis" title="Tênis">
+                                    <span class="emoji-icon">🎾</span>
+                                    <span class="emoji-label">Tênis</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🏓" data-name="Tênis de Mesa" title="Tênis de Mesa">
+                                    <span class="emoji-icon">🏓</span>
+                                    <span class="emoji-label">Ping-Pong</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🏸" data-name="Badminton" title="Badminton">
+                                    <span class="emoji-icon">🏸</span>
+                                    <span class="emoji-label">Badminton</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🏀" data-name="Basquete" title="Basquete">
+                                    <span class="emoji-icon">🏀</span>
+                                    <span class="emoji-label">Basquete</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🤾" data-name="Handebol" title="Handebol">
+                                    <span class="emoji-icon">🤾</span>
+                                    <span class="emoji-label">Handebol</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🥊" data-name="Boxe" title="Boxe">
+                                    <span class="emoji-icon">🥊</span>
+                                    <span class="emoji-label">Boxe</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🥋" data-name="Jiu-Jitsu" title="Artes Marciais / Lutas">
+                                    <span class="emoji-icon">🥋</span>
+                                    <span class="emoji-label">Lutas</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🏋️" data-name="Crossfit" title="Musculação / Crossfit">
+                                    <span class="emoji-icon">🏋️</span>
+                                    <span class="emoji-label">Funcional</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🏊" data-name="Natação" title="Natação">
+                                    <span class="emoji-icon">🏊</span>
+                                    <span class="emoji-label">Natação</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🏃" data-name="Corrida" title="Corrida / Atletismo">
+                                    <span class="emoji-icon">🏃</span>
+                                    <span class="emoji-label">Corrida</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🚴" data-name="Ciclismo" title="Ciclismo">
+                                    <span class="emoji-icon">🚴</span>
+                                    <span class="emoji-label">Ciclismo</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🛹" data-name="Skate" title="Skate">
+                                    <span class="emoji-icon">🛹</span>
+                                    <span class="emoji-label">Skate</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🎱" data-name="Sinuca" title="Sinuca / Bilhar">
+                                    <span class="emoji-icon">🎱</span>
+                                    <span class="emoji-label">Sinuca</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🎳" data-name="Boliche" title="Boliche">
+                                    <span class="emoji-icon">🎳</span>
+                                    <span class="emoji-label">Boliche</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="⛳" data-name="Golfe" title="Golfe">
+                                    <span class="emoji-icon">⛳</span>
+                                    <span class="emoji-label">Golfe</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🎯" data-name="Dardos" title="Tiro / Dardos">
+                                    <span class="emoji-icon">🎯</span>
+                                    <span class="emoji-label">Dardos</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🧘" data-name="Yoga" title="Yoga / Pilates">
+                                    <span class="emoji-icon">🧘</span>
+                                    <span class="emoji-label">Yoga</span>
+                                </button>
+                                <button type="button" class="btn btn-emoji" data-emoji="🏆" data-name="Torneio" title="Geral / Torneio">
+                                    <span class="emoji-icon">🏆</span>
+                                    <span class="emoji-label">Torneio</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <a href="{% url 'backoffice:modality_list' arena_slug=arena.slug %}" class="btn btn-action">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-action-primary px-4">
+                            {% if is_editing %}Salvar Alterações{% else %}Cadastrar Modalidade{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const nameInput = document.getElementById("id_name") || document.getElementById("id_modality_name") || document.querySelector('[name="name"]');
+        const emojiInput = document.getElementById("id_emoji") || document.getElementById("id_modality_emoji") || document.querySelector('[name="emoji"]');
+        const previewEmoji = document.getElementById("preview-emoji");
+        const previewName = document.getElementById("preview-name");
+        const emojiButtons = document.querySelectorAll(".btn-emoji");
+
+        function updatePreview() {
+            if (!previewEmoji || !previewName) return;
+            const emojiVal = (emojiInput ? emojiInput.value : "").trim();
+            const nameVal = (nameInput ? nameInput.value : "").trim();
+            previewEmoji.textContent = emojiVal || "🏐";
+            previewName.textContent = nameVal || "Nome da Modalidade";
+
+            // Highlight active emoji button if matches
+            emojiButtons.forEach(btn => {
+                if (btn.getAttribute("data-emoji") === emojiVal) {
+                    btn.classList.add("active");
+                } else {
+                    btn.classList.remove("active");
+                }
+            });
+        }
+
+        // Live typing in inputs
+        if (nameInput) nameInput.addEventListener("input", updatePreview);
+        if (emojiInput) emojiInput.addEventListener("input", updatePreview);
+
+        // Click on emoji button
+        emojiButtons.forEach(btn => {
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                const selectedEmoji = this.getAttribute("data-emoji");
+                const suggestedName = this.getAttribute("data-name");
+
+                if (emojiInput) emojiInput.value = selectedEmoji;
+
+                if (nameInput && suggestedName) {
+                    nameInput.value = suggestedName;
+                }
+
+                updatePreview();
+                if (nameInput) nameInput.focus();
+            });
+        });
+
+        // Initial preview call
+        updatePreview();
+    });
+</script>
+
+<style>
+    .preview-box {
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(0, 0, 0, 0.02) 100%);
+        border-color: rgba(255, 193, 7, 0.25) !important;
+    }
+    [data-bs-theme="dark"] .preview-box {
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border-color: rgba(255, 193, 7, 0.2) !important;
+    }
+
+    .btn-emoji {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 14px;
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color);
+        border-radius: 12px;
+        color: var(--bs-body-color);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        min-width: 80px;
+    }
+    .btn-emoji:hover {
+        border-color: #334155;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .btn-emoji.active {
+        border-color: var(--brand-color) !important;
+        background-color: rgba(255, 193, 7, 0.15) !important;
+        color: var(--bs-heading-color);
+        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.4);
+        transform: scale(1.05);
+    }
+    .emoji-icon {
+        font-size: 1.8rem;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+    .emoji-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    [data-bs-theme="dark"] .btn-emoji {
+        background-color: #171a22;
+        border-color: #2d3340;
+    }
+    [data-bs-theme="dark"] .btn-emoji:hover {
+        border-color: var(--brand-color);
+    }
+    [data-bs-theme="dark"] .btn-emoji.active {
+        background-color: rgba(255, 193, 7, 0.15) !important;
+        border-color: var(--brand-color) !important;
+    }
+</style>
+{% endblock %}

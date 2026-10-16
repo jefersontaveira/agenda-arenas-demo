@@ -1,0 +1,98 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap align-items-center pt-3 pb-2 mb-3 border-bottom gap-2">
+    <h1 class="h2 mb-0">{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Equipamento</h1>
+    <a href="{% url 'backoffice:equipment_list' arena_slug=arena.slug %}" class="btn btn-action">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger mb-3">
+                            {% for error in form.non_field_errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.name.errors %}
+                                    <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold" for="{{ form.total_quantity.id_for_label }}">{{ form.total_quantity.label }}</label>
+                            {{ form.total_quantity }}
+                            <div class="form-text small">Quantidade disponível na arena.</div>
+                            {% if form.total_quantity.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.total_quantity.errors %}
+                                        <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold" for="{{ form.rental_price.id_for_label }}">{{ form.rental_price.label }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                {{ form.rental_price }}
+                            </div>
+                            <div class="form-text small">Deixe 0,00 para ser gratuito.</div>
+                            {% if form.rental_price.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.rental_price.errors %}
+                                        <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" for="{{ form.modalities.id_for_label }}">{{ form.modalities.label }}</label>
+                        {{ form.modalities }}
+                        <div class="form-text small">Segure "Ctrl" (ou Cmd) para selecionar mais de uma modalidade.</div>
+                        {% if form.modalities.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.modalities.errors %}
+                                    <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4 form-check form-switch p-3 rounded border">
+                        {{ form.is_active }}
+                        <label class="form-check-label ms-2 fw-semibold" for="{{ form.is_active.id_for_label }}">
+                            Item disponível para aluguel?
+                        </label>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-action-primary py-2 fw-semibold">
+                            <i class="bi bi-check-lg me-1"></i> Salvar Equipamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

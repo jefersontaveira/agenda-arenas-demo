@@ -1,0 +1,59 @@
+{% for customer in customers %}
+<tr style="cursor: pointer;" onclick="window.location='{% url 'backoffice:customer_detail' arena_slug=arena.slug pk=customer.pk %}'">
+    <td class="ps-4">
+        <div class="fw-bold text-body text-truncate" style="max-width: 150px;">{{ customer.name }}</div>
+        <!-- Exibir telefone no mobile, ocultando jogos -->
+        <div class="d-sm-none mt-1 text-body-secondary small">
+            <i class="bi bi-telephone me-1"></i>{{ customer.formatted_phone }}
+        </div>
+    </td>
+
+    <td class="text-nowrap d-none d-sm-table-cell">
+        <span class="text-body-secondary">{{ customer.formatted_phone }}</span>
+    </td>
+
+    <td class="d-none d-sm-table-cell">
+        <span class="badge customer-badge">
+            {{ customer.total_bookings }} reserva{{ customer.total_bookings|pluralize }}
+        </span>
+    </td>
+
+    <td class="text-end pe-3 pe-sm-4 text-nowrap">
+        <button type="button" class="btn btn-sm btn-action ms-1" title="Editar Cliente"
+                data-id="{{ customer.pk }}"
+                data-name="{{ customer.name|escape }}"
+                data-phone="{{ customer.phone }}"
+                data-email="{{ customer.email|default:'' }}"
+                data-cpf="{{ customer.cpf|default:'' }}"
+                data-birth-date="{{ customer.birth_date|date:'Y-m-d'|default:'' }}"
+                data-observation="{{ customer.observation|default:''|escape }}"
+                data-url="{% url 'backoffice:customer_edit' arena_slug=arena.slug pk=customer.pk %}"
+                onclick="event.stopPropagation(); openEditCustomerModal(this);">
+            <i class="bi bi-pencil"></i>
+        </button>
+
+        <button type="button" class="btn btn-sm btn-action-danger ms-1" title="Excluir Cliente"
+                data-id="{{ customer.pk }}"
+                data-name="{{ customer.name|escape }}"
+                data-url="{% url 'backoffice:customer_delete' arena_slug=arena.slug pk=customer.pk %}"
+                onclick="event.stopPropagation(); openDeleteCustomerModal(this);">
+            <i class="bi bi-trash"></i>
+        </button>
+
+        {% if customer.phone %}
+        <a href="https://wa.me/55{{ customer.phone }}" target="_blank" class="btn btn-sm btn-action text-success ms-1" title="WhatsApp" style="border-color: rgba(25, 135, 84, 0.35);" onclick="event.stopPropagation();">
+            <i class="bi bi-whatsapp"></i>
+        </a>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+{% if not is_paginated or page_obj.number == 1 %}
+<tr>
+    <td colspan="4" class="text-center py-5 text-body-secondary">
+        <i class="bi bi-people fs-1 mb-2 d-block opacity-50"></i>
+        Nenhum cliente encontrado.
+    </td>
+</tr>
+{% endif %}
+{% endfor %}

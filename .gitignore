@@ -1,0 +1,61 @@
+# ===============================
+# Python
+# ===============================
+__pycache__/
+*.pyc
+*.pyo
+*.py[cod]
+*$py.class
+*.pyc
+config/local_settings.py
+config/nginx-http.txt
+
+# ===============================
+# Django
+# ===============================
+db.sqlite3
+*.log
+local_settings.py
+.env
+
+# ===============================
+# Pastas geradas pelo Django
+# ===============================
+media/
+staticfiles/
+
+# ===============================
+# Ambiente virtual
+# ===============================
+venv/
+env/
+.venv/
+
+# ===============================
+# IDEs / Editores
+# ===============================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===============================
+# Sistema Operacional
+# ===============================
+.DS_Store
+Thumbs.db
+
+# ===============================
+# Testes / Coverage
+# ===============================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ===============================
+# Migrações compiladas (cache)
+# ===============================
+**/migrations/__pycache__/
+
+
+

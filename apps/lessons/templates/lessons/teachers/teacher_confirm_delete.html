@@ -1,0 +1,32 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0 text-center p-4">
+            <div class="card-body">
+                <div class="text-danger mb-3">
+                    <i class="bi bi-trash fs-1"></i>
+                </div>
+                <h3 class="fw-bold mb-3">Excluir Professor?</h3>
+                <p class="text-body-secondary mb-3">
+                    Você tem certeza que deseja remover <strong class="text-body fs-5">{{ object.name }}</strong>?
+                    <br><span class="small">Turmas vinculadas a ele ficarão "Sem Professor".</span>
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+                        <a href="{% url 'lessons:teacher_list' arena_slug=arena.slug %}" class="btn btn-action">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-action-danger">
+                            <i class="bi bi-trash me-1"></i> Confirmar Exclusão
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0 text-center p-4">
+            <div class="card-body">
+                <div class="text-danger mb-3">
+                    <i class="bi bi-calendar-x fs-1"></i>
+                </div>
+                <h3 class="fw-bold mb-3">Cancelar Reserva?</h3>
+                <p class="text-body-secondary mb-2">Deseja realmente cancelar a reserva de:</p>
+                <h4 class="fw-bold text-body mb-2">{{ booking.customer.name }}</h4>
+                <p class="text-body-secondary small mb-4">
+                    {{ booking.court.name }} — {{ booking.start_time|date:"d/m/Y H:i" }}
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="{% url 'backoffice:dashboard' arena_slug=arena.slug %}" class="btn btn-action">
+                            Não, Voltar
+                        </a>
+                        <button type="submit" class="btn btn-action-danger">
+                            <i class="bi bi-trash me-1"></i> Sim, Cancelar Reserva
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

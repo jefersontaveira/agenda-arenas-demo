@@ -1,0 +1,400 @@
+{% extends 'saas/base_saas.html' %}
+
+{% block title %}Dashboard Master | Logística do SaaS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4">
+
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-speedometer2 text-warning"></i> Painel de Logística & Gestão SaaS
+            </h1>
+            <p class="text-secondary small mb-0">Controle operacional das Arenas, faturamento recorrente, inadimplência e volume de reservas.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'saas:arena_create' %}" class="btn btn-warning btn-sm px-3 rounded-pill fw-bold text-dark shadow-sm">
+                <i class="bi bi-plus-circle-fill me-1"></i> Cadastrar Arena
+            </a>
+            <button type="button" class="btn btn-outline-warning btn-sm px-3 rounded-pill" data-bs-toggle="modal" data-bs-target="#generateModal">
+                <i class="bi bi-magic me-1"></i> Gerar Mensalidades do Mês
+            </button>
+            <a href="{% url 'saas:subscription_create' %}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill text-light">
+                <i class="bi bi-receipt me-1"></i> Nova Cobrança Avulsa
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards Row -->
+    <div class="row g-3 mb-4">
+        <!-- MRR Contratado -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card kpi-card h-100" style="--kpi-glow: rgba(245, 158, 11, 0.2);">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="kpi-lbl">MRR (Faturamento SaaS)</span>
+                        <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-val text-warning">R$ {{ mrr|floatformat:2 }}</div>
+                </div>
+                <div class="mt-3 pt-2 border-top border-secondary border-opacity-25 small text-secondary">
+                    Receita recorrente mensal contratada
+                </div>
+            </div>
+        </div>
+
+        <!-- Faturas Deste Mês -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card kpi-card h-100" style="--kpi-glow: rgba(16, 185, 129, 0.2);">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="kpi-lbl">Recebido Neste Mês</span>
+                        <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-val text-success">R$ {{ paid_month|floatformat:2 }}</div>
+                </div>
+                <div class="mt-3 pt-2 border-top border-secondary border-opacity-25 small d-flex justify-content-between">
+                    <span class="text-secondary">Pendente a receber:</span>
+                    <span class="text-warning fw-bold">R$ {{ pending_month|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arenas & Inadimplência -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card kpi-card h-100" style="--kpi-glow: {% if overdue_arenas_count > 0 %}rgba(239, 68, 68, 0.25){% else %}rgba(59, 130, 246, 0.2){% endif %};">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="kpi-lbl">Arenas no Sistema</span>
+                        <div class="kpi-icon {% if overdue_arenas_count > 0 %}bg-danger bg-opacity-10 text-danger{% else %}bg-info bg-opacity-10 text-info{% endif %}">
+                            <i class="bi bi-buildings"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="kpi-val text-white">{{ active_arenas }}</span>
+                        <span class="text-secondary small">ativas (de {{ total_arenas }})</span>
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-top border-secondary border-opacity-25 small d-flex justify-content-between">
+                    <span class="text-secondary">Inadimplentes:</span>
+                    {% if overdue_arenas_count > 0 %}
+                    <span class="badge bg-danger-subtle text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ overdue_arenas_count }} com atraso</span>
+                    {% else %}
+                    <span class="text-success fw-bold"><i class="bi bi-check2-circle me-1"></i>Nenhuma pendência</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Volume de Reservas Global -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="glass-card kpi-card h-100" style="--kpi-glow: rgba(99, 102, 241, 0.2);">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="kpi-lbl">Reservas na Plataforma</span>
+                        <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-calendar-check-fill"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-val text-white">{{ total_bookings_count }}</div>
+                </div>
+                <div class="mt-3 pt-2 border-top border-secondary border-opacity-25 small">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-secondary">Feitas pelo Site (Online):</span>
+                        <span class="text-info fw-bold">{{ total_online_count }} ({{ online_rate }}%)</span>
+                    </div>
+                    <div class="progress" style="height: 5px; background: rgba(255,255,255,0.1);">
+                        <div class="progress-bar bg-info" style="width: {{ online_rate }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Arenas Table & Management Section -->
+    <div class="row g-4">
+        <div class="col-12 col-xl-8">
+            <div class="glass-card">
+                <!-- Card Header with Filters -->
+                <div class="p-3 p-md-4 border-bottom border-secondary border-opacity-25">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                        <div>
+                            <h2 class="h5 fw-bold text-white mb-0">Controle Operacional das Arenas</h2>
+                            <small class="text-secondary">Visão detalhada de proprietários, dados de contato e quantitativos</small>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="{% url 'saas:arena_create' %}" class="btn btn-outline-warning btn-sm px-3 rounded-pill fw-bold d-none d-sm-inline-flex align-items-center gap-1">
+                                <i class="bi bi-plus-lg"></i> Nova Arena
+                            </a>
+
+                            <!-- Search and Filter Form -->
+                            <form method="get" class="d-flex gap-2">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-dark border-secondary border-opacity-50 text-secondary"><i class="bi bi-search"></i></span>
+                                <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-sm" placeholder="Buscar arena, dono...">
+                            </div>
+                            <select name="status" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                                <option value="">Todas</option>
+                                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Ativas</option>
+                                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Bloqueadas</option>
+                            </select>
+                            {% if search_query or status_filter %}
+                            <a href="{% url 'saas:dashboard' %}" class="btn btn-outline-secondary btn-sm" title="Limpar Filtros"><i class="bi bi-x"></i></a>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Table Content -->
+                <div class="table-responsive">
+                    <table class="table table-custom mb-0">
+                        <thead>
+                            <tr>
+                                <th>Arena / Dono</th>
+                                <th>Contato do Dono</th>
+                                <th>Plano SaaS</th>
+                                <th>Status Financ.</th>
+                                <th>Reservas & Origem</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in arenas %}
+                            <tr>
+                                <!-- Arena & Dono -->
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle p-2 d-flex align-items-center justify-content-center {% if a.is_active %}bg-warning bg-opacity-10 text-warning{% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}" style="width: 38px; height: 38px;">
+                                            <i class="bi bi-building"></i>
+                                        </div>
+                                        <div>
+                                            <a href="{% url 'saas:arena_detail' a.pk %}" class="text-white fw-bold text-decoration-none hover-primary">
+                                                {{ a.name }}
+                                            </a>
+                                            <div class="small text-secondary">
+                                                <i class="bi bi-person me-1"></i>{{ a.owner_name|default:"Não informado" }}
+                                            </div>
+                                            {% if not a.is_active %}
+                                            <span class="badge bg-danger text-white" style="font-size: 0.65rem;">BLOQUEADA</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Contato & WhatsApp -->
+                                <td>
+                                    {% if a.owner_phone %}
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="small text-light">{{ a.owner_phone }}</span>
+                                        {% if a.whatsapp_link %}
+                                        <a href="{{ a.whatsapp_link }}" target="_blank" class="btn-whatsapp" title="Conversar no WhatsApp">
+                                            <i class="bi bi-whatsapp"></i> Chat
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                    {% else %}
+                                    <span class="small text-secondary fst-italic">Sem telefone</span>
+                                    {% endif %}
+                                    {% if a.owner_email %}
+                                    <div class="small text-secondary text-truncate" style="max-width: 170px;">
+                                        <i class="bi bi-envelope me-1"></i>{{ a.owner_email }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Mensalidade e Vencimento -->
+                                <td>
+                                    <div class="fw-bold text-warning">
+                                        R$ {{ a.monthly_fee|floatformat:2 }}
+                                    </div>
+                                    <div class="small text-secondary">
+                                        Dia {{ a.due_day|default:10 }}
+                                    </div>
+                                </td>
+
+                                <!-- Status Financeiro -->
+                                <td>
+                                    {% with fs=a.financial_status %}
+                                    <span class="badge-status badge-{{ fs.badge }}-subtle">
+                                        <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> {{ fs.label }}
+                                    </span>
+                                    {% endwith %}
+                                </td>
+
+                                <!-- Quantitativos de Reservas -->
+                                <td>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="fw-bold text-white">{{ a.total_bookings }}</span>
+                                        <span class="small text-secondary">reservas</span>
+                                    </div>
+                                    <div class="d-flex gap-1" style="font-size: 0.72rem;">
+                                        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" title="Reservas feitas pelo site do cliente">
+                                            <i class="bi bi-globe me-1"></i>{{ a.online_bookings }} Online
+                                        </span>
+                                        <span class="badge bg-secondary bg-opacity-25 text-light" title="Reservas feitas na recepção">
+                                            <i class="bi bi-pc-display me-1"></i>{{ a.backoffice_bookings }} Balcão
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Ações -->
+                                <td class="text-end">
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'saas:arena_detail' a.pk %}">
+                                                    <i class="bi bi-eye me-2 text-info"></i> Ver Perfil Completo
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'saas:arena_edit' a.pk %}">
+                                                    <i class="bi bi-pencil me-2 text-warning"></i> Editar Dados / Plano
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'saas:subscription_create' %}?arena={{ a.pk }}">
+                                                    <i class="bi bi-receipt me-2 text-success"></i> Nova Mensalidade
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item text-secondary" href="/gestao/{{ a.slug }}/" target="_blank">
+                                                    <i class="bi bi-box-arrow-up-right me-2"></i> Abrir Painel da Arena
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item {% if a.is_active %}text-danger{% else %}text-success{% endif %}" href="{% url 'saas:arena_toggle_active' a.pk %}" onclick="return confirm('Deseja realmente alterar o status de ativação da arena {{ a.name }}?');">
+                                                    {% if a.is_active %}
+                                                    <i class="bi bi-lock-fill me-2"></i> Bloquear Acesso
+                                                    {% else %}
+                                                    <i class="bi bi-unlock-fill me-2"></i> Reativar Arena
+                                                    {% endif %}
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-secondary">
+                                    <i class="bi bi-building-add fs-1 text-secondary opacity-50 d-block mb-3"></i>
+                                    <h6 class="text-white fw-bold mb-1">Nenhuma arena encontrada</h6>
+                                    <p class="small text-secondary mb-3">Comece cadastrando um novo estabelecimento parceiro ou ajuste os filtros de busca.</p>
+                                    <a href="{% url 'saas:arena_create' %}" class="btn btn-warning btn-sm px-4 rounded-pill fw-bold text-dark">
+                                        <i class="bi bi-plus-circle-fill me-1"></i> Cadastrar Nova Arena
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Invoices Sidebar -->
+        <div class="col-12 col-xl-4">
+            <div class="glass-card p-3 p-md-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h3 class="h6 fw-bold text-white mb-0">Cobranças & Mensalidades</h3>
+                        <small class="text-secondary">Últimas faturas registradas</small>
+                    </div>
+                    <a href="{% url 'saas:subscription_list' %}" class="btn btn-sm btn-outline-secondary rounded-pill" style="font-size: 0.78rem;">
+                        Ver Todas
+                    </a>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    {% for sub in recent_subscriptions %}
+                    <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="fw-bold text-light small d-block">{{ sub.arena.name }}</span>
+                                <small class="text-secondary">Vencimento: {{ sub.due_date|date:"d/m/Y" }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-warning small d-block">R$ {{ sub.amount|floatformat:2 }}</span>
+                                {% if sub.status == 'PAID' %}
+                                <span class="badge badge-success-subtle py-1" style="font-size: 0.7rem;">PAGO</span>
+                                {% elif sub.status == 'OVERDUE' %}
+                                <span class="badge badge-danger-subtle py-1" style="font-size: 0.7rem;">ATRASADO</span>
+                                {% else %}
+                                <span class="badge badge-warning-subtle py-1" style="font-size: 0.7rem;">PENDENTE</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if sub.status != 'PAID' %}
+                        <div class="d-flex justify-content-end gap-2 mt-2 pt-2 border-top border-secondary border-opacity-10">
+                            {% if sub.arena.whatsapp_link %}
+                            <a href="{{ sub.arena.whatsapp_link }}?text=Ol%C3%A1%20{{ sub.arena.owner_name|urlencode }},%20lembrete%20da%20mensalidade%20do%20sistema%20da%20{{ sub.arena.name|urlencode }}%20com%20vencimento%20em%20{{ sub.due_date|date:'d/m' }}%20no%20valor%20de%20R$%20{{ sub.amount }}." target="_blank" class="btn btn-outline-success btn-sm py-1 px-2" style="font-size: 0.75rem;" title="Cobrar no WhatsApp">
+                                <i class="bi bi-whatsapp"></i> Cobrar
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'saas:subscription_mark_paid' sub.pk %}" class="btn btn-sm btn-success py-1 px-2 text-dark fw-bold" style="font-size: 0.75rem;">
+                                <i class="bi bi-check-lg"></i> Dar Baixa
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4 text-secondary small">
+                        Nenhuma mensalidade cadastrada ainda.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Gerar Mensalidades em Lote -->
+<div class="modal fade" id="generateModal" tabindex="-1" aria-labelledby="generateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border border-secondary border-opacity-50" style="background-color: #111827;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25">
+                <h5 class="modal-title text-white fw-bold" id="generateModalLabel">
+                    <i class="bi bi-magic text-warning me-2"></i> Gerar Mensalidades em Lote
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'saas:subscription_generate_batch' %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body text-light">
+                    <p class="small text-secondary mb-3">
+                        Essa rotina cria automaticamente as cobranças de mensalidade para **todas as arenas ativas** com base no valor mensal e dia de vencimento configurados. Faturas já geradas não serão duplicadas.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-secondary">Mês de Referência (1-12)</label>
+                            {{ generate_form.month }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-secondary">Ano</label>
+                            {{ generate_form.year }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning btn-sm rounded-pill text-dark fw-bold px-3">
+                        <i class="bi bi-check2-circle me-1"></i> Processar e Gerar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

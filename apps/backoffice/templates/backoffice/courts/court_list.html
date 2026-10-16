@@ -1,0 +1,1340 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+
+<!-- Flash message container para operações AJAX -->
+<div id="ajax-flash-container"></div>
+
+<!-- Cabeçalho Principal -->
+<div class="d-flex justify-content-between flex-wrap gap-3 align-items-center pt-3 pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h2 mb-1">Quadras & Modalidades</h1>
+        <p class="text-body-secondary small mb-0">Gerencie os espaços de jogo e os esportes da sua arena em um só lugar.</p>
+    </div>
+    <div class="d-flex gap-2 w-100 w-sm-auto justify-content-start justify-content-sm-end">
+        <button type="button" class="btn btn-action header-action-btn flex-fill flex-sm-grow-0" onclick="openNewModalityModal();">
+            <i class="bi bi-trophy me-1 text-warning"></i> Nova Modalidade
+        </button>
+        <button type="button" class="btn btn-action-primary header-action-btn flex-fill flex-sm-grow-0" onclick="openNewCourtModal();">
+            <i class="bi bi-plus-lg me-1"></i> Nova Quadra
+        </button>
+    </div>
+</div>
+
+<!-- ==========================================
+     SEÇÃO 2: MODALIDADES ESPORTIVAS (LISTA)
+     ========================================== -->
+<div class="mb-5" id="modalidades">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="fw-bold mb-0 d-flex align-items-center gap-2 fs-5 fs-sm-4">
+                <i class="bi bi-trophy text-warning"></i> 
+                <span class="d-inline d-sm-none">Modalidades</span>
+                <span class="d-none d-sm-inline">Modalidades Esportivas</span>
+            </h4>
+            <span class="badge bg-body-secondary text-body border rounded-pill">{{ all_modalities.count }}</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-action" onclick="openNewModalityModal();">
+            <i class="bi bi-plus-lg me-1"></i> Nova Modalidade
+        </button>
+    </div>
+
+    <!-- Desktop Table View (>= 768px) -->
+    <div class="card shadow-sm border-0 overflow-hidden d-none d-md-block">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 table-hover">
+                    <thead class="table-header-custom">
+                        <tr>
+                            <th class="ps-4" style="width: 70px;">Emoji</th>
+                            <th>Modalidade</th>
+                            <th>Quadras Vinculadas</th>
+                            <th class="text-end pe-4" style="width: 180px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mod in all_modalities %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="modality-list-emoji">
+                                    {{ mod.emoji|default:"🏐" }}
+                                </div>
+                            </td>
+                            <td>
+                                <strong class="fs-6 text-body">{{ mod.name }}</strong>
+                            </td>
+                            <td>
+                                {% if mod.court_count > 0 %}
+                                    <span class="badge court-count-badge">
+                                        <i class="bi bi-grid-1x2 me-1"></i> {{ mod.court_count }} quadra{{ mod.court_count|pluralize }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge text-body-secondary border bg-body-tertiary">
+                                        Nenhuma quadra
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-inline-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-action" title="Editar Modalidade"
+                                            data-id="{{ mod.pk }}"
+                                            data-name="{{ mod.name|escape }}"
+                                            data-emoji="{{ mod.emoji|default:'🏐' }}"
+                                            data-url="{% url 'backoffice:modality_edit' arena_slug=arena.slug pk=mod.pk %}"
+                                            onclick="openEditModalityModal(this);">
+                                        <i class="bi bi-pencil me-1"></i> Editar
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-action-danger" title="Excluir Modalidade"
+                                            data-id="{{ mod.pk }}"
+                                            data-name="{{ mod.name|escape }}"
+                                            data-url="{% url 'backoffice:modality_delete' arena_slug=arena.slug pk=mod.pk %}"
+                                            onclick="openDeleteModalityModal(this);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-body-secondary">
+                                <div class="mb-2 opacity-50">
+                                    <i class="bi bi-trophy fs-2"></i>
+                                </div>
+                                <p class="mb-3">Nenhuma modalidade esportiva cadastrada no momento.</p>
+                                <button type="button" class="btn btn-action-primary btn-sm" onclick="openNewModalityModal();">
+                                    <i class="bi bi-plus-lg me-1"></i> Cadastrar Primeira Modalidade
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Card View (< 768px) -->
+    <div class="d-md-none">
+        <div class="d-flex flex-column gap-2">
+            {% for mod in all_modalities %}
+            <div class="card shadow-sm modality-mobile-card">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-3 min-w-0">
+                        <div class="modality-list-emoji flex-shrink-0">
+                            {{ mod.emoji|default:"🏐" }}
+                        </div>
+                        <div class="text-truncate">
+                            <strong class="d-block text-truncate text-body fs-6 mb-1">{{ mod.name }}</strong>
+                            <div>
+                                {% if mod.court_count > 0 %}
+                                    <span class="badge court-count-badge py-1 px-2" style="font-size: 0.72rem;">
+                                        <i class="bi bi-grid-1x2 me-1"></i> {{ mod.court_count }} quadra{{ mod.court_count|pluralize }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge text-body-secondary border bg-body-tertiary py-1 px-2" style="font-size: 0.72rem;">
+                                        Nenhuma quadra
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <button type="button" class="btn btn-sm btn-action px-2 py-1" title="Editar Modalidade"
+                                data-id="{{ mod.pk }}"
+                                data-name="{{ mod.name|escape }}"
+                                data-emoji="{{ mod.emoji|default:'🏐' }}"
+                                data-url="{% url 'backoffice:modality_edit' arena_slug=arena.slug pk=mod.pk %}"
+                                onclick="openEditModalityModal(this);">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-action-danger px-2 py-1" title="Excluir Modalidade"
+                                data-id="{{ mod.pk }}"
+                                data-name="{{ mod.name|escape }}"
+                                data-url="{% url 'backoffice:modality_delete' arena_slug=arena.slug pk=mod.pk %}"
+                                onclick="openDeleteModalityModal(this);">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-4 bg-body-tertiary rounded-3 border border-dashed">
+                <div class="mb-2 opacity-50">
+                    <i class="bi bi-trophy fs-2"></i>
+                </div>
+                <p class="mb-3 small text-body-secondary">Nenhuma modalidade esportiva cadastrada no momento.</p>
+                <button type="button" class="btn btn-action-primary btn-sm" onclick="openNewModalityModal();">
+                    <i class="bi bi-plus-lg me-1"></i> Cadastrar Primeira Modalidade
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     SEÇÃO 1: QUADRAS FÍSICAS (CARDS)
+     ========================================== -->
+<div class="mb-5 mt-5 pt-4 border-top">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="fw-bold mb-0 d-flex align-items-center gap-2 fs-5 fs-sm-4">
+                <i class="bi bi-grid-1x2 text-primary"></i> Quadras Físicas
+            </h4>
+            <span class="badge bg-body-secondary text-body border rounded-pill">{{ courts.count }}</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-action" onclick="openNewCourtModal();">
+            <i class="bi bi-plus-lg me-1"></i> Adicionar Quadra
+        </button>
+    </div>
+
+    <div class="row g-4">
+        {% for court in courts %}
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+            <div class="card h-100 shadow-sm court-card hover-lift transition-all">
+                <div class="card-header border-0 bg-transparent pt-4 pb-0 d-flex justify-content-between align-items-start">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle shadow-sm border"
+                              style="width: 20px; height: 20px; background-color: {{ court.color }}; display: inline-block; border-color: rgba(255,255,255,0.2) !important;">
+                        </span>
+                        <h5 class="fw-bold mb-0 text-truncate court-title" style="max-width: 170px;" title="{{ court.name }}">
+                            {{ court.name }}
+                        </h5>
+                    </div>
+
+                    {% if court.is_active %}
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success rounded-pill px-3 fw-bold">Ativa</span>
+                    {% else %}
+                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger rounded-pill px-3 fw-bold">Manutenção</span>
+                    {% endif %}
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-body-secondary text-uppercase fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Preço Base</small>
+                        <div class="fs-3 fw-bold court-price">
+                            R$ {{ court.price }}
+                            <span class="fs-6 text-body-secondary fw-normal">/hora</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <small class="text-body-secondary text-uppercase fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Esportes Aceitos</small>
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            {% for modality in court.modalities.all %}
+                                <span class="badge modality-badge">
+                                    {{ modality.emoji }} {{ modality.name }}
+                                </span>
+                            {% empty %}
+                                <span class="text-body-secondary small fst-italic">Nenhum esporte vinculado</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-transparent border-0 pt-0 pb-4">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-action flex-grow-1"
+                                data-id="{{ court.pk }}"
+                                data-name="{{ court.name|escape }}"
+                                data-price="{{ court.price }}"
+                                data-color="{{ court.color }}"
+                                data-is-active="{% if court.is_active %}true{% else %}false{% endif %}"
+                                data-modalities="[{% for m in court.modalities.all %}{{ m.pk }}{% if not forloop.last %},{% endif %}{% endfor %}]"
+                                data-url="{% url 'backoffice:court_edit' arena_slug=arena.slug pk=court.pk %}"
+                                onclick="openEditCourtModal(this);">
+                            <i class="bi bi-pencil me-1"></i> Editar
+                        </button>
+                        <button type="button" class="btn btn-action-danger" title="Excluir Quadra"
+                                data-id="{{ court.pk }}"
+                                data-name="{{ court.name|escape }}"
+                                data-url="{% url 'backoffice:court_delete' arena_slug=arena.slug pk=court.pk %}"
+                                onclick="openDeleteCourtModal(this);">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5 bg-body-tertiary rounded-3 border border-dashed">
+                <div class="mb-3 text-body-secondary opacity-50">
+                    <i class="bi bi-grid-3x3-gap fs-1"></i>
+                </div>
+                <h5 class="fw-bold text-body">Nenhuma quadra cadastrada</h5>
+                <p class="text-body-secondary mb-4">Comece adicionando os espaços onde seus clientes vão jogar.</p>
+                <button type="button" class="btn btn-action-primary px-4" onclick="openNewCourtModal();">
+                    Cadastrar Primeira Quadra
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CADASTRAR / EDITAR QUADRA
+     ======================================================= -->
+<div class="modal fade" id="courtModal" tabindex="-1" aria-labelledby="courtModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-grid-1x2 fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="courtModalTitle">Nova Quadra</h5>
+                        <small class="text-body-secondary" id="courtModalSubtitle">Cadastre ou edite as especificações e modalidades da quadra.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="courtForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="courtFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <div class="row g-3">
+                        <!-- Nome da Quadra -->
+                        <div class="col-12 col-md-7">
+                            <label class="form-label fw-bold small mb-1" for="id_court_name">
+                                Nome da Quadra <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="id_court_name" class="form-control" placeholder="Ex: Quadra de Areia 1, Quadra Coberta..." required>
+                            <div class="invalid-feedback small" id="err-name"></div>
+                        </div>
+
+                        <!-- Cor da Quadra -->
+                        <div class="col-12 col-md-5">
+                            <label class="form-label fw-bold small mb-1" for="id_court_color">
+                                Cor de Identificação
+                            </label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="color" name="color" id="id_court_color" class="form-control form-control-color" value="#FFC107" title="Escolha a cor da quadra" style="width: 48px; height: 38px;">
+                                <small class="text-body-secondary">Cor usada na grade de reservas</small>
+                            </div>
+                            <div class="invalid-feedback small" id="err-color"></div>
+                        </div>
+
+                        <!-- Preço Base -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-1" for="id_court_price">
+                                Preço por Horário
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary">R$</span>
+                                <input type="number" name="price" id="id_court_price" class="form-control" step="0.50" min="0" value="0.00" placeholder="0.00">
+                            </div>
+                            <div class="form-text text-body-secondary mt-1">
+                                <i class="bi bi-info-circle me-1 text-primary"></i>
+                                Se deixar <strong>R$ 0,00</strong>, será usado o Preço Padrão da arena (R$ {{ default_price|default:"0.00" }}).
+                            </div>
+                            <div class="invalid-feedback small" id="err-price"></div>
+                        </div>
+
+                        <!-- Modalidades Aceitas -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-2 d-block">
+                                Modalidades / Esportes Aceitos
+                            </label>
+                            <div class="p-3 bg-body-tertiary rounded-3 border">
+                                <div class="d-flex flex-wrap gap-2" id="modalities-checkbox-container">
+                                    {% for mod in all_modalities %}
+                                    <div class="form-check form-check-inline m-0">
+                                        <input class="btn-check court-modality-check" type="checkbox" name="modalities" value="{{ mod.id }}" id="mod-check-{{ mod.id }}">
+                                        <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 mb-1 d-inline-flex align-items-center gap-1 modality-pill-check" for="mod-check-{{ mod.id }}">
+                                            <span>{{ mod.emoji }}</span> <span>{{ mod.name }}</span>
+                                        </label>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-body-secondary small">
+                                        <i class="bi bi-info-circle me-1"></i> Nenhuma modalidade cadastrada. Cadastre uma modalidade abaixo primeiro.
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quadra Ativa -->
+                        <div class="col-12">
+                            <div class="bg-body-tertiary border p-3 rounded-3">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="id_court_is_active" role="switch" checked>
+                                    <label class="form-check-label ms-2 fw-bold" for="id_court_is_active">
+                                        Quadra Ativa para Reservas?
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4" id="btnSubmitCourt">
+                        <span class="btn-text">Salvar Quadra</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAÇÃO DE EXCLUSÃO DE QUADRA
+     ======================================================= -->
+<div class="modal fade" id="deleteCourtModal" tabindex="-1" aria-labelledby="deleteCourtModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="delete-icon-circle mx-auto mb-3">
+                    <i class="bi bi-trash3-fill fs-2 text-danger"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="deleteCourtModalTitle">Excluir Quadra</h4>
+                <p class="lead mb-2 fs-6">
+                    Tem certeza que deseja excluir a quadra <strong id="deleteCourtNameText" class="text-body"></strong>?
+                </p>
+                <p class="text-body-secondary small mb-4">
+                    Essa ação não pode ser desfeita e o histórico associado a esta quadra pode ser afetado.
+                </p>
+
+                <form id="deleteCourtForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-danger px-4" id="btnConfirmDeleteCourt">
+                            <i class="bi bi-trash me-1"></i> Sim, Apagar Quadra
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CADASTRAR / EDITAR MODALIDADE
+     ======================================================= -->
+<div class="modal fade" id="modalityModal" tabindex="-1" aria-labelledby="modalityModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-trophy fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="modalityModalTitle">Nova Modalidade</h5>
+                        <small class="text-body-secondary" id="modalityModalSubtitle">Cadastre ou edite um esporte com seu respectivo emoji.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="modalityForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="modalityFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <!-- Live Preview Box -->
+                    <div class="preview-box p-3 rounded-3 text-center mb-4 border">
+                        <small class="text-uppercase fw-bold text-body-secondary d-block mb-2" style="letter-spacing: 0.5px; font-size: 0.72rem;">
+                            Pré-visualização em Tempo Real
+                        </small>
+                        <div class="d-inline-flex align-items-center gap-3 bg-body p-2 px-4 rounded-pill shadow-sm border">
+                            <span id="modal-preview-emoji" class="line-height-1" style="font-size: 2rem;">
+                                🏐
+                            </span>
+                            <span id="modal-preview-name" class="fs-5 fw-bold text-body">
+                                Nome da Modalidade
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Nome da Modalidade -->
+                        <div class="col-12 col-md-8">
+                            <label class="form-label fw-bold small mb-1" for="id_modal_mod_name">
+                                Nome da Modalidade <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="id_modal_mod_name" class="form-control" placeholder="Ex: Vôlei, Futevôlei, Beach Tennis, Futebol..." required autocomplete="off">
+                            <div class="invalid-feedback small" id="err-modality-name"></div>
+                        </div>
+
+                        <!-- Emoji da Modalidade -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold small mb-1" for="id_modal_mod_emoji">
+                                Emoji <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary">Emoji</span>
+                                <input type="text" name="emoji" id="id_modal_mod_emoji" class="form-control text-center fs-5" value="🏐" maxlength="10" required>
+                            </div>
+                            <div class="invalid-feedback small" id="err-modality-emoji"></div>
+                        </div>
+
+                        <!-- Grid de Emojis -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-2 d-block">
+                                <i class="bi bi-hand-index-thumb me-1 text-warning"></i> Clique em um esporte ou digite seu emoji:
+                            </label>
+                            <div class="p-3 bg-body-tertiary rounded-3 border">
+                                <div class="d-flex flex-wrap gap-2 modal-emoji-grid" id="modal-emoji-grid">
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏐" data-name="Vôlei" title="Vôlei">
+                                        <span class="emoji-icon">🏐</span>
+                                        <span class="emoji-label">Vôlei</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏖️" data-name="Beach Tennis" title="Beach Tennis">
+                                        <span class="emoji-icon">🏖️</span>
+                                        <span class="emoji-label">Beach Tennis</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="⚽" data-name="Futebol" title="Futebol">
+                                        <span class="emoji-icon">⚽</span>
+                                        <span class="emoji-label">Futebol</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🥅" data-name="Futevôlei" title="Futevôlei">
+                                        <span class="emoji-icon">🥅</span>
+                                        <span class="emoji-label">Futevôlei</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🎾" data-name="Tênis" title="Tênis">
+                                        <span class="emoji-icon">🎾</span>
+                                        <span class="emoji-label">Tênis</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏓" data-name="Tênis de Mesa" title="Tênis de Mesa">
+                                        <span class="emoji-icon">🏓</span>
+                                        <span class="emoji-label">Ping-Pong</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏸" data-name="Badminton" title="Badminton">
+                                        <span class="emoji-icon">🏸</span>
+                                        <span class="emoji-label">Badminton</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏀" data-name="Basquete" title="Basquete">
+                                        <span class="emoji-icon">🏀</span>
+                                        <span class="emoji-label">Basquete</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🤾" data-name="Handebol" title="Handebol">
+                                        <span class="emoji-icon">🤾</span>
+                                        <span class="emoji-label">Handebol</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🥊" data-name="Boxe" title="Boxe">
+                                        <span class="emoji-icon">🥊</span>
+                                        <span class="emoji-label">Boxe</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🥋" data-name="Jiu-Jitsu" title="Artes Marciais / Lutas">
+                                        <span class="emoji-icon">🥋</span>
+                                        <span class="emoji-label">Lutas</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏋️" data-name="Crossfit" title="Musculação / Crossfit">
+                                        <span class="emoji-icon">🏋️</span>
+                                        <span class="emoji-label">Funcional</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏊" data-name="Natação" title="Natação">
+                                        <span class="emoji-icon">🏊</span>
+                                        <span class="emoji-label">Natação</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏃" data-name="Corrida" title="Corrida / Atletismo">
+                                        <span class="emoji-icon">🏃</span>
+                                        <span class="emoji-label">Corrida</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🚴" data-name="Ciclismo" title="Ciclismo">
+                                        <span class="emoji-icon">🚴</span>
+                                        <span class="emoji-label">Ciclismo</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🛹" data-name="Skate" title="Skate">
+                                        <span class="emoji-icon">🛹</span>
+                                        <span class="emoji-label">Skate</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🎱" data-name="Sinuca" title="Sinuca / Bilhar">
+                                        <span class="emoji-icon">🎱</span>
+                                        <span class="emoji-label">Sinuca</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🎳" data-name="Boliche" title="Boliche">
+                                        <span class="emoji-icon">🎳</span>
+                                        <span class="emoji-label">Boliche</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="⛳" data-name="Golfe" title="Golfe">
+                                        <span class="emoji-icon">⛳</span>
+                                        <span class="emoji-label">Golfe</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🎯" data-name="Dardos" title="Tiro / Dardos">
+                                        <span class="emoji-icon">🎯</span>
+                                        <span class="emoji-label">Dardos</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🧘" data-name="Yoga" title="Yoga / Pilates">
+                                        <span class="emoji-icon">🧘</span>
+                                        <span class="emoji-label">Yoga</span>
+                                    </button>
+                                    <button type="button" class="btn btn-modal-emoji" data-emoji="🏆" data-name="Torneio" title="Geral / Torneio">
+                                        <span class="emoji-icon">🏆</span>
+                                        <span class="emoji-label">Torneio</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4" id="btnSubmitModality">
+                        <span class="btn-text">Salvar Modalidade</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAÇÃO DE EXCLUSÃO DE MODALIDADE
+     ======================================================= -->
+<div class="modal fade" id="deleteModalityModal" tabindex="-1" aria-labelledby="deleteModalityModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="delete-icon-circle mx-auto mb-3">
+                    <i class="bi bi-trash3-fill fs-2 text-danger"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="deleteModalityModalTitle">Excluir Modalidade</h4>
+                <p class="lead mb-2 fs-6">
+                    Tem certeza que deseja excluir a modalidade <strong id="deleteModalityNameText" class="text-body"></strong>?
+                </p>
+                <p class="text-body-secondary small mb-4">
+                    Essa ação não pode ser desfeita e pode desvincular o esporte das quadras associadas.
+                </p>
+
+                <form id="deleteModalityForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-danger px-4" id="btnConfirmDeleteModality">
+                            <i class="bi bi-trash me-1"></i> Sim, Apagar Modalidade
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const URL_COURT_CREATE = "{% url 'backoffice:court_create' arena_slug=arena.slug %}";
+    const URL_MODALITY_CREATE = "{% url 'backoffice:modality_create' arena_slug=arena.slug %}";
+
+    function getCourtModal() {
+        const el = document.getElementById('courtModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getDeleteCourtModal() {
+        const el = document.getElementById('deleteCourtModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getModalityModal() {
+        const el = document.getElementById('modalityModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getDeleteModalityModal() {
+        const el = document.getElementById('deleteModalityModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function updateModalModalityPreview() {
+        const nameInp = document.getElementById('id_modal_mod_name');
+        const emojiInp = document.getElementById('id_modal_mod_emoji');
+        const prevEmoji = document.getElementById('modal-preview-emoji');
+        const prevName = document.getElementById('modal-preview-name');
+        if (!nameInp || !emojiInp) return;
+
+        const emojiVal = emojiInp.value.trim() || '🏐';
+        const nameVal = nameInp.value.trim() || 'Nome da Modalidade';
+
+        if (prevEmoji) prevEmoji.textContent = emojiVal;
+        if (prevName) prevName.textContent = nameVal;
+
+        document.querySelectorAll('.btn-modal-emoji').forEach(btn => {
+            if (btn.getAttribute('data-emoji') === emojiVal) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    function clearModalityFormErrors() {
+        const alertBox = document.getElementById('modalityFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+        const inputs = document.querySelectorAll('#modalityForm .form-control');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+        const feedbacks = document.querySelectorAll('#modalityForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    function openNewModalityModal() {
+        const form = document.getElementById('modalityForm');
+        if (!form) return;
+        form.reset();
+        form.action = URL_MODALITY_CREATE;
+
+        document.getElementById('modalityModalTitle').textContent = "Nova Modalidade";
+        document.getElementById('modalityModalSubtitle').textContent = "Cadastre as especificações e o emoji do esporte.";
+        document.getElementById('btnSubmitModality').querySelector('.btn-text').textContent = "Cadastrar Modalidade";
+
+        document.getElementById('id_modal_mod_name').value = '';
+        document.getElementById('id_modal_mod_emoji').value = '🏐';
+
+        clearModalityFormErrors();
+        updateModalModalityPreview();
+
+        const modal = getModalityModal();
+        if (modal) modal.show();
+    }
+
+    function openEditModalityModal(btn) {
+        const form = document.getElementById('modalityForm');
+        if (!form || !btn) return;
+        form.reset();
+        clearModalityFormErrors();
+
+        const modName = btn.getAttribute('data-name') || '';
+        const modEmoji = btn.getAttribute('data-emoji') || '🏐';
+        const modUrl = btn.getAttribute('data-url') || '';
+
+        form.action = modUrl;
+        document.getElementById('id_modal_mod_name').value = modName;
+        document.getElementById('id_modal_mod_emoji').value = modEmoji;
+
+        document.getElementById('modalityModalTitle').textContent = "Editar Modalidade";
+        document.getElementById('modalityModalSubtitle').textContent = "Editando esporte " + modName;
+        document.getElementById('btnSubmitModality').querySelector('.btn-text').textContent = "Salvar Alterações";
+
+        updateModalModalityPreview();
+
+        const modal = getModalityModal();
+        if (modal) modal.show();
+    }
+
+    function openDeleteModalityModal(btn) {
+        const form = document.getElementById('deleteModalityForm');
+        if (!form || !btn) return;
+
+        const modName = btn.getAttribute('data-name') || '';
+        const modUrl = btn.getAttribute('data-url') || '';
+
+        form.action = modUrl;
+        document.getElementById('deleteModalityNameText').textContent = modName;
+
+        const modal = getDeleteModalityModal();
+        if (modal) modal.show();
+    }
+
+    function openNewCourtModal() {
+        const form = document.getElementById('courtForm');
+        if (!form) return;
+        form.reset();
+        form.action = URL_COURT_CREATE;
+
+        document.getElementById('courtModalTitle').textContent = "Nova Quadra";
+        document.getElementById('courtModalSubtitle').textContent = "Cadastre as especificações e modalidades da quadra.";
+        document.getElementById('btnSubmitCourt').querySelector('.btn-text').textContent = "Cadastrar Quadra";
+
+        document.getElementById('id_court_name').value = '';
+        document.getElementById('id_court_color').value = "#FFC107";
+        document.getElementById('id_court_price').value = "0.00";
+        document.getElementById('id_court_is_active').checked = true;
+
+        // Desmarca todas as modalidades
+        document.querySelectorAll('.court-modality-check').forEach(chk => chk.checked = false);
+
+        clearCourtFormErrors();
+        const modal = getCourtModal();
+        if (modal) modal.show();
+    }
+
+    function openEditCourtModal(btn) {
+        const form = document.getElementById('courtForm');
+        if (!form || !btn) return;
+        form.reset();
+        clearCourtFormErrors();
+
+        // Leitura segura dos atributos
+        const courtName = btn.getAttribute('data-name') || '';
+        const courtPrice = btn.getAttribute('data-price') || '0';
+        const courtColor = btn.getAttribute('data-color') || '#FFC107';
+        const courtIsActive = btn.getAttribute('data-is-active');
+        const courtModalities = btn.getAttribute('data-modalities') || '[]';
+        const courtUrl = btn.getAttribute('data-url') || '';
+
+        form.action = courtUrl;
+
+        document.getElementById('id_court_name').value = courtName;
+
+        let numPrice = parseFloat(courtPrice.replace(',', '.'));
+        document.getElementById('id_court_price').value = isNaN(numPrice) ? '0.00' : numPrice.toFixed(2);
+        document.getElementById('id_court_color').value = courtColor;
+        document.getElementById('id_court_is_active').checked = (courtIsActive === 'true');
+
+        // Marca as modalidades vinculadas
+        let selectedMods = [];
+        try {
+            selectedMods = JSON.parse(courtModalities);
+        } catch (e) {
+            selectedMods = [];
+        }
+
+        const selectedIds = Array.isArray(selectedMods) ? selectedMods.map(Number) : [];
+        document.querySelectorAll('.court-modality-check').forEach(chk => {
+            chk.checked = selectedIds.includes(parseInt(chk.value, 10));
+        });
+
+        document.getElementById('courtModalTitle').textContent = "Editar Quadra";
+        document.getElementById('courtModalSubtitle').textContent = "Editando especificações de " + courtName;
+        document.getElementById('btnSubmitCourt').querySelector('.btn-text').textContent = "Salvar Alterações";
+
+        const modal = getCourtModal();
+        if (modal) modal.show();
+    }
+
+    function openDeleteCourtModal(btn) {
+        const form = document.getElementById('deleteCourtForm');
+        if (!form || !btn) return;
+
+        const courtName = btn.getAttribute('data-name') || '';
+        const courtUrl = btn.getAttribute('data-url') || '';
+
+        form.action = courtUrl;
+        document.getElementById('deleteCourtNameText').textContent = courtName;
+
+        const modal = getDeleteCourtModal();
+        if (modal) modal.show();
+    }
+
+    function clearCourtFormErrors() {
+        const alertBox = document.getElementById('courtFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+
+        const inputs = document.querySelectorAll('#courtForm .form-control');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+
+        const feedbacks = document.querySelectorAll('#courtForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    // Inicialização e checagem de flash message
+    function initCourtList() {
+        const savedFlash = sessionStorage.getItem('court_flash_msg');
+        if (savedFlash) {
+            sessionStorage.removeItem('court_flash_msg');
+            const flashContainer = document.getElementById('ajax-flash-container');
+            if (flashContainer) {
+                flashContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> ${savedFlash}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", initCourtList);
+    document.addEventListener("turbo:render", initCourtList);
+
+    // Event Delegation global para envio dos formulários
+    document.addEventListener("submit", async function(e) {
+        // 1. Submit Form de Quadra (Criar / Editar)
+        if (e.target && e.target.id === 'courtForm') {
+            e.preventDefault();
+            const courtForm = e.target;
+            clearCourtFormErrors();
+
+            const submitBtn = document.getElementById('btnSubmitCourt');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(courtForm);
+                const csrfToken = courtForm.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(courtForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getCourtModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('court_flash_msg', data.message || 'Quadra salva com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('courtFormAlert');
+                    alertBox.classList.remove('d-none');
+
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.querySelector(`[name="${field}"]`);
+                            const feedback = document.getElementById(`err-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Ocorreu um erro ao salvar a quadra. Verifique os campos.');
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                const alertBox = document.getElementById('courtFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // 2. Submit Form de Exclusão de Quadra
+        if (e.target && e.target.id === 'deleteCourtForm') {
+            e.preventDefault();
+            const deleteForm = e.target;
+
+            const submitBtn = document.getElementById('btnConfirmDeleteCourt');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Excluindo...';
+
+            try {
+                const formData = new FormData(deleteForm);
+                const csrfToken = deleteForm.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(deleteForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getDeleteCourtModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('court_flash_msg', data.message || 'Quadra excluída com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Não foi possível excluir a quadra.');
+                }
+            } catch (err) {
+                console.error('Erro na exclusão:', err);
+                alert('Erro ao excluir a quadra. Tente novamente.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // 3. Submit Form de Modalidade (Criar / Editar)
+        if (e.target && e.target.id === 'modalityForm') {
+            e.preventDefault();
+            const modForm = e.target;
+            clearModalityFormErrors();
+
+            const submitBtn = document.getElementById('btnSubmitModality');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(modForm);
+                const csrfToken = modForm.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(modForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getModalityModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('court_flash_msg', data.message || 'Modalidade salva com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('modalityFormAlert');
+                    alertBox.classList.remove('d-none');
+
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.querySelector(`#modalityForm [name="${field}"]`);
+                            const feedback = document.getElementById(`err-modality-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Ocorreu um erro ao salvar a modalidade. Verifique os campos.');
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                const alertBox = document.getElementById('modalityFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // 4. Submit Form de Exclusão de Modalidade
+        if (e.target && e.target.id === 'deleteModalityForm') {
+            e.preventDefault();
+            const deleteForm = e.target;
+
+            const submitBtn = document.getElementById('btnConfirmDeleteModality');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Excluindo...';
+
+            try {
+                const formData = new FormData(deleteForm);
+                const csrfToken = deleteForm.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(deleteForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getDeleteModalityModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('court_flash_msg', data.message || 'Modalidade excluída com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Não foi possível excluir a modalidade.');
+                }
+            } catch (err) {
+                console.error('Erro na exclusão:', err);
+                alert('Erro ao excluir a modalidade. Tente novamente.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    });
+
+    // Eventos de digitação e seleção de emoji do modal
+    document.addEventListener("DOMContentLoaded", function() {
+        const modNameInp = document.getElementById('id_modal_mod_name');
+        const modEmojiInp = document.getElementById('id_modal_mod_emoji');
+        if (modNameInp) modNameInp.addEventListener('input', updateModalModalityPreview);
+        if (modEmojiInp) modEmojiInp.addEventListener('input', updateModalModalityPreview);
+
+        document.querySelectorAll('.btn-modal-emoji').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const emoji = this.getAttribute('data-emoji');
+                const sportName = this.getAttribute('data-name');
+                const emojiInp = document.getElementById('id_modal_mod_emoji');
+                const nameInp = document.getElementById('id_modal_mod_name');
+                if (emojiInp) emojiInp.value = emoji;
+                if (nameInp && sportName) {
+                    nameInp.value = sportName;
+                }
+                updateModalModalityPreview();
+                if (nameInp) nameInp.focus();
+            });
+        });
+    });
+</script>
+
+<style>
+    /* Card das Quadras */
+    .court-card {
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color) !important;
+        border-radius: var(--card-radius);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .court-title {
+        color: var(--bs-heading-color);
+        font-size: 1.15rem;
+    }
+    .court-price {
+        color: var(--bs-heading-color);
+    }
+    .modality-badge {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        border: 1px solid var(--bs-border-color);
+        font-weight: 600;
+        padding: 6px 10px;
+        border-radius: 8px;
+    }
+
+    [data-bs-theme="dark"] .court-card {
+        background-color: #171a22 !important;
+        border-color: #2d3340 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
+    }
+    [data-bs-theme="dark"] .court-card:hover {
+        border-color: #475569 !important;
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.4) !important;
+    }
+    [data-bs-theme="dark"] .court-title {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .court-price {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .modality-badge {
+        background-color: #1e2229 !important;
+        color: #e2e8f0 !important;
+        border-color: #333a48 !important;
+    }
+
+    /* Lista de Modalidades */
+    .table-header-custom th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 700;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--bs-border-color);
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+    [data-bs-theme="dark"] .table-header-custom th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-color: #2c323e !important;
+    }
+
+    .modality-list-emoji {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background-color: var(--bs-tertiary-bg);
+        border: 1px solid var(--bs-border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        line-height: 1;
+    }
+    [data-bs-theme="dark"] .modality-list-emoji {
+        background-color: #1e2229;
+        border-color: #333a48;
+    }
+
+    .court-count-badge {
+        background-color: rgba(255, 193, 7, 0.15);
+        color: #b28600;
+        border: 1px solid rgba(255, 193, 7, 0.35);
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 8px;
+    }
+    [data-bs-theme="dark"] .court-count-badge {
+        background-color: rgba(255, 193, 7, 0.12);
+        color: #ffca2c;
+        border-color: rgba(255, 193, 7, 0.3);
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-4px);
+    }
+    .transition-all {
+        transition: all 0.2s ease;
+    }
+    .border-dashed {
+        border-style: dashed !important;
+    }
+
+    /* Modal Styling */
+    .modal-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background-color: rgba(255, 193, 7, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .delete-icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: rgba(220, 53, 69, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    [data-bs-theme="dark"] .modal-content {
+        background-color: #1a1d22 !important;
+        border: 1px solid #2d3340 !important;
+    }
+    [data-bs-theme="dark"] .modal-header,
+    [data-bs-theme="dark"] .modal-footer {
+        border-color: #2d3340 !important;
+    }
+
+    /* Modal Emoji Picker & Preview */
+    .preview-box {
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(0, 0, 0, 0.02) 100%);
+        border-color: rgba(255, 193, 7, 0.25) !important;
+    }
+    [data-bs-theme="dark"] .preview-box {
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border-color: rgba(255, 193, 7, 0.2) !important;
+    }
+    .btn-check:checked + .modality-pill-check {
+        background-color: var(--brand-color) !important;
+        border-color: var(--brand-color) !important;
+        color: #111315 !important;
+        font-weight: 700;
+    }
+
+    .btn-modal-emoji {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+        background-color: var(--bs-card-bg);
+        border: 1.5px solid var(--bs-border-color);
+        border-radius: 10px;
+        color: var(--bs-body-color);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        min-width: 76px;
+    }
+    .btn-modal-emoji:hover {
+        border-color: #334155;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .btn-modal-emoji.active {
+        border-color: var(--brand-color) !important;
+        background-color: rgba(255, 193, 7, 0.15) !important;
+        color: var(--bs-heading-color);
+        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.4);
+        transform: scale(1.05);
+    }
+    .btn-modal-emoji .emoji-icon {
+        font-size: 1.5rem;
+        line-height: 1;
+        margin-bottom: 2px;
+    }
+    .btn-modal-emoji .emoji-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    [data-bs-theme="dark"] .btn-modal-emoji {
+        background-color: #171a22;
+        border-color: #2d3340;
+    }
+    [data-bs-theme="dark"] .btn-modal-emoji:hover {
+        border-color: var(--brand-color);
+    }
+    [data-bs-theme="dark"] .btn-modal-emoji.active {
+        background-color: rgba(255, 193, 7, 0.15) !important;
+        border-color: var(--brand-color) !important;
+    }
+
+    /* Cards mobile para modalidades */
+    .modality-mobile-card {
+        background-color: var(--bs-card-bg);
+        border: 1px solid var(--bs-border-color) !important;
+        border-radius: 12px;
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .modality-mobile-card:hover {
+        border-color: rgba(255, 193, 7, 0.4) !important;
+    }
+    [data-bs-theme="dark"] .modality-mobile-card {
+        background-color: #171a22 !important;
+        border-color: #2d3340 !important;
+    }
+
+    /* Botões de Ação do Cabeçalho Padronizados e Proporcionais */
+    .header-action-btn {
+        height: 42px;
+        min-height: 42px;
+        max-height: 42px;
+        white-space: nowrap !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px;
+        font-size: 0.88rem;
+        padding: 0 16px;
+        border-radius: 10px;
+        box-sizing: border-box;
+    }
+    @media (max-width: 575.98px) {
+        .header-action-btn {
+            height: 40px !important;
+            min-height: 40px !important;
+            max-height: 40px !important;
+            font-size: 0.8rem !important;
+            padding: 0 8px !important;
+            flex: 1 1 0 !important;
+            letter-spacing: -0.2px;
+        }
+    }
+</style>
+
+{% endblock %}

@@ -1,0 +1,320 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão Premium | Organize seu Negócio</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="{% static 'css/core/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/responsividade.css' %}">
+
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">Gestão<span class="text-gold">Nexus</span></h1>
+
+            <ul class="nav-links">
+                <li><a href="#tour-sistema">Funcionalidades</a></li>
+                <li><a href="#solucoes">Vantagens</a></li>
+                <li><a href="#planos">Planos</a></li>
+                <li><a href="#contato">Contato</a></li>
+                <li>
+                    <a href="{% url 'login' %}" class="btn-login-nav">Acessar Sistema</a>
+                </li>
+            </ul>
+
+            <div class="menu-toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="container hero-content">
+            <h2>A Gestão Profissional que sua <span class="text-gold">Arena Esportiva</span> Merece</h2>
+
+            <p>Esqueça o caderno e o WhatsApp lotado. O sistema completo para automatizar reservas de quadras, controlar mensalidades de alunos e zerar a inadimplência no seu Beach Tennis, Vôlei ou Futevôlei.</p>
+
+            <div class="hero-btns">
+                <a href="#planos" class="btn btn-primary">Quero Modernizar Minha Arena</a>
+                <a href="https://wa.me/+5585981311975" class="btn btn-outline"><i class="fa-brands fa-whatsapp"></i> Falar com Consultor</a>
+            </div>
+        </div>
+    </header>
+
+    <section id="seguranca" class="security">
+        <div class="container">
+            <h2 class="section-title">Tecnologia que blinda sua operação</h2>
+            <div class="security-grid">
+
+                <div class="security-card">
+                    <div class="card-icon">
+                        <i class="fa-solid fa-calendar-xmark"></i>
+                    </div>
+                    <div class="counter-wrapper">
+                        <span class="counter" data-target="0">50</span>
+                    </div>
+                    <p>Horários duplicados ou conflitos de agenda.</p>
+                </div>
+
+                <div class="security-card">
+                    <div class="card-icon">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <div class="counter-wrapper">
+                        <span class="counter" data-target="24">0</span>
+                        <span class="symbol">/7</span>
+                    </div>
+                    <p>Sistema online para seus alunos reservarem a qualquer hora.</p>
+                </div>
+
+                <div class="security-card">
+                    <div class="card-icon">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                    <div class="counter-wrapper">
+                        <span class="counter" data-target="100">0</span>
+                        <span class="symbol">%</span>
+                    </div>
+                    <p>Segurança dos dados com backups automáticos diários.</p>
+                </div>
+
+                <div class="security-card">
+                    <div class="card-icon">
+                        <i class="fa-solid fa-magnifying-glass-dollar"></i>
+                    </div>
+                    <div class="counter-wrapper">
+                        <span class="counter" data-target="100">0</span>
+                        <span class="symbol">%</span>
+                    </div>
+                    <p>Controle sobre quem pagou, quem deve e faturamento real.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section id="solucoes" class="features">
+        <div class="container">
+            <h2 class="section-title">Chega de perder dinheiro</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i class="fa-solid fa-calendar-xmark icon-gold"></i>
+                    <h3>Adeus Agenda Confusa</h3>
+                    <p>Nunca mais sofra com horários duplicados ou reservas perdidas em cadernos e planilhas.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fa-solid fa-file-invoice-dollar icon-gold"></i>
+                    <h3>Controle de Inadimplência</h3>
+                    <p>Saiba exatamente quem pagou e quem está devendo. Bloqueie agendamentos de inadimplentes automaticamente.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fa-solid fa-bell icon-gold"></i>
+                    <h3>Reduza Faltas</h3>
+                    <p>Lembretes automáticos para seus alunos e clientes. Diminua drasticamente o "No-Show".</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fa-solid fa-chart-line icon-gold"></i>
+                    <h3>Fim do "Achismo"</h3>
+                    <p>Relatórios financeiros precisos. Saiba exatamente seu lucro diário e qual o horário de pico que te dá mais dinheiro.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fa-solid fa-mobile-screen-button icon-gold"></i>
+                    <h3>Venda Enquanto Dorme</h3>
+                    <p>Seu link de agendamento trabalha 24h por dia. O cliente reserva, paga o PIX e o sistema bloqueia o horário sozinho.</p>
+                </div>
+
+                <div class="feature-card">
+                    <i class="fa-solid fa-graduation-cap icon-gold"></i>
+                    <h3>Gestão de Turmas</h3>
+                    <p>Controle total da sua escolinha. Monitore frequências, mensalidades e alunos ativos em um único painel.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section id="tour-sistema" class="system-tour">
+        <div class="container">
+            <h2 class="section-title">Tudo o que você precisa em um só lugar</h2>
+
+            <div class="tour-container">
+                <div class="tour-menu">
+                    <button class="tour-btn active" data-id="0">
+                        <i class="fa-solid fa-check"></i> Gestão de Reservas e Quadras
+                    </button>
+                    <button class="tour-btn" data-id="1">
+                        <i class="fa-solid fa-check"></i> Agendamento Online & PIX
+                    </button>
+                    <button class="tour-btn" data-id="2">
+                        <i class="fa-solid fa-check"></i> Personalização de Quadras
+                    </button>
+                    <button class="tour-btn" data-id="3">
+                        <i class="fa-solid fa-check"></i> Gestão de Escolinha & Alunos
+                    </button>
+                    <button class="tour-btn" data-id="4">
+                        <i class="fa-solid fa-check"></i> Relatórios & Inteligência
+                    </button>
+                </div>
+
+
+                <div class="tour-content">
+
+                    <div class="content-text">
+                        </div>
+
+                    <div class="tour-indicators" id="tour-dots">
+                        </div>
+
+                    <div class="content-image">
+                        </div>
+
+                    <div class="content-text">
+                        <h3 id="feature-title">Gestão de Reservas e Quadras</h3>
+                        <p id="feature-desc">
+                            Centralize sua operação em uma única tela. Visualize a grade de horários de todas as quadras, identifique pagamentos pendentes por cores e gerencie o estoque de bolas e raquetes em tempo real. Acompanhe métricas vitais como faturamento diário e taxa de ocupação sem precisar abrir planilhas.
+                        </p>
+                    </div>
+                    <div class="content-image">
+
+                        <img src="{% static 'img/dashboard.jpeg' %}" id="feature-img" alt="Imagem do Sistema">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="planos" class="pricing">
+        <div class="container">
+            <h2 class="section-title">Escolha o plano ideal</h2>
+            <div class="pricing-grid">
+
+                <div class="price-card">
+                    <h3>Start</h3>
+                    <div class="price">R$ 149,90<span class="month">/mês</span></div>
+                    <p class="desc">Para organizar suas reservas e quadras.</p>
+                    <ul class="features-list">
+                        <li><i class="fa-solid fa-check"></i> Agenda Online Inteligente</li>
+                        <li><i class="fa-solid fa-check"></i> Link de Agendamento (Cliente)</li>
+                        <li><i class="fa-solid fa-check"></i> Cadastro de Quadras Ilimitado</li>
+                        <li class="disabled"><i class="fa-solid fa-xmark"></i> Gestão de Escolinha</li>
+                        <li class="disabled"><i class="fa-solid fa-xmark"></i> Automação Financeira</li>
+                        <li class="disabled"><i class="fa-solid fa-xmark"></i> Cobrança Automática</li>
+                    </ul>
+                    <a href="#contato" class="btn btn-outline">Começar Agora</a>
+                </div>
+
+                <div class="price-card popular">
+                    <div class="badge">Mais Popular</div>
+                    <h3>Pro</h3>
+                    <div class="price">R$ 199,90<span class="month">/mês</span></div>
+                    <p class="desc">Para crescer sua escolinha e ver os lucros.</p>
+                    <ul class="features-list">
+                        <li><i class="fa-solid fa-check"></i> Tudo do plano Start</li>
+                        <li><i class="fa-solid fa-check"></i> <strong>Gestão de Turmas e Alunos</strong></li>
+                        <li><i class="fa-solid fa-check"></i> Controle de Professores</li>
+                        <li><i class="fa-solid fa-check"></i> Relatórios Financeiros Detalhados</li>
+                        <li class="disabled"><i class="fa-solid fa-xmark"></i> Cobrança Automática</li>
+                    </ul>
+                    <a href="#contato" class="btn btn-primary">Começar Agora</a>
+                </div>
+
+                <div class="price-card">
+                    <h3>Elite</h3>
+                    <div class="price">R$ 270,90<span class="month">/mês</span></div>
+                    <p class="desc">Automatize cobranças e zere a inadimplência.</p>
+                    <ul class="features-list">
+                        <li><i class="fa-solid fa-check"></i> Tudo do plano Pro</li>
+                        <li><i class="fa-solid fa-check"></i> <strong>Cobranças Automáticas</strong></li>
+                        <li><i class="fa-solid fa-check"></i> Baixa Automática de Pagamentos</li>
+                        <li><i class="fa-solid fa-check"></i> Bloqueio de Inadimplentes</li>
+                        <li><i class="fa-solid fa-check"></i> Régua de Cobrança (Zap/Email)</li>
+                    </ul>
+                    <a href="#contato" class="btn btn-outline">Começar Agora</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section id="contato" class="contact">
+        <div class="container">
+            <h2 class="section-title">Fale Conosco</h2>
+            <div class="contact-wrapper">
+                <form id="contactForm" class="contact-form">
+                    <input type="text" id="nome" placeholder="Seu Nome" required>
+
+                    <input type="email" id="email" placeholder="Seu E-mail" required>
+
+                    <input type="tel" id="whatsapp" placeholder="Seu WhatsApp" required>
+
+                    <select id="plano" required>
+                        <option value="" disabled selected>Qual plano te interessou?</option>
+                        <option value="Start">Plano Start (149,90)</option>
+                        <option value="Pro">Plano Pro (199,90)</option>
+                        <option value="Elite">Plano Elite (270,90)</option>
+                    </select>
+
+                    <button type="submit" class="btn btn-primary">Solicitar Contato</button>
+                </form>
+
+                <div class="social-links">
+                    <p>Siga-nos nas redes:</p>
+                    <div class="icons">
+                        <a href="https://www.instagram.com/jeferson_taveria/"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="https://www.linkedin.com/in/jefersontaveira/"><i class="fa-brands fa-linkedin"></i></a>
+                        <a href="https://wa.me/+5585981311975"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Nexus. Todos os direitos reservados.</p>
+    </footer>
+
+    <script>
+        // Dados do Sistema (EDITAR AQUI COM SEUS TEXTOS E IMAGENS)
+        const systemData = [
+            {
+                title: "Gestão de Reservas e Quadras",
+                desc: "Centralize sua operação em uma única tela. Visualize a grade de horários de todas as quadras, identifique pagamentos pendentes por cores e gerencie o estoque de bolas e raquetes em tempo real. Acompanhe métricas vitais como faturamento diário e taxa de ocupação sem precisar abrir planilhas.",
+                img: "{% static 'img/dashboard.jpeg' %}"
+            },
+            {
+                title: "Autoatendimento com Pagamento",
+                desc: "Dê adeus à troca de mensagens no WhatsApp. Seu cliente acessa um link exclusivo, escolhe a modalidade (Vôlei, Beach Tennis, etc.) e o horário disponível. O sistema é inteligente: bloqueia automaticamente horários de aulas e só confirma a reserva mediante pagamento via PIX (50% ou 100%), eliminando o prejuízo com horários vagos.",
+                img: "{% static 'img/cliente.jpeg' %}"
+            },
+            {
+                title: "Sua Arena, Suas Regras",
+                desc: "Adapte o sistema à realidade do seu espaço. Cadastre ilimitadas quadras e defina exatamente quais modalidades cada uma aceita (Vôlei, Futevôlei, Beach Tennis). Precisa fechar uma quadra para manutenção? Desative-a com um clique e o sistema bloqueia novos agendamentos automaticamente, evitando conflitos e constrangimentos.",
+                img: "{% static 'img/quadras.jpeg' %}"
+            },
+            {
+                title: "Escolinha Lucrativa e Organizada",
+                desc: "Transforme suas aulas em uma máquina de receita recorrente. Tenha um painel claro com alunos ativos, aulas experimentais e controle financeiro rigoroso. O sistema destaca automaticamente os inadimplentes e gerencia as mensalidades, permitindo que você foque em coordenar seus professores e lotar as turmas, sem perder tempo cobrando aluno por aluno.",
+                img: "{% static 'img/classes.jpeg' %}"
+            },
+            {
+                title: "Decisões Baseadas em Dados",
+                desc: "Pare de adivinhar o faturamento da sua arena. Nosso painel de inteligência detalha exatamente de onde vem seu lucro: reservas, aluguéis de bolas ou raquetes. Descubra seu 'Horário de Pico' para ajustar preços estrategicamente, identifique seus 'Top 5 Clientes' para criar promoções VIP e acompanhe a taxa de cancelamento para blindar seu caixa.",
+                img: "{% static 'img/relatorios.jpeg' %}"
+            }
+        ];
+    </script>
+
+    <script src="{% static 'js/core/script.js' %}"></script>
+</body>
+</html>

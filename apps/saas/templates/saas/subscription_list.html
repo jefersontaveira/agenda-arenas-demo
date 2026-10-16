@@ -1,0 +1,134 @@
+{% extends 'saas/base_saas.html' %}
+
+{% block title %}Mensalidades & Faturas | SaaS Master{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4">
+
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">
+                <i class="bi bi-receipt text-warning"></i> Mensalidades do SaaS
+            </h1>
+            <p class="text-secondary small mb-0">Controle completo de todas as faturas geradas, vencimentos e baixas financeiras.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'saas:subscription_create' %}" class="btn btn-warning btn-sm px-3 rounded-pill text-dark fw-bold">
+                <i class="bi bi-plus-lg me-1"></i> Nova Cobrança Avulsa
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="glass-card p-3 mb-4">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-12 col-md-4">
+                <select name="arena" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas as Arenas</option>
+                    {% for a in arenas %}
+                    <option value="{{ a.pk }}" {% if selected_arena == a.pk|stringformat:"i" %}selected{% endif %}>{{ a.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos os Status</option>
+                    <option value="PENDING" {% if selected_status == 'PENDING' %}selected{% endif %}>Pendente</option>
+                    <option value="PAID" {% if selected_status == 'PAID' %}selected{% endif %}>Pago</option>
+                    <option value="OVERDUE" {% if selected_status == 'OVERDUE' %}selected{% endif %}>Atrasado</option>
+                    <option value="CANCELED" {% if selected_status == 'CANCELED' %}selected{% endif %}>Cancelado</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-auto ms-auto d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill px-3">Filtrar</button>
+                {% if selected_arena or selected_status %}
+                <a href="{% url 'saas:subscription_list' %}" class="btn btn-sm btn-outline-secondary rounded-pill">Limpar</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Card -->
+    <div class="glass-card">
+        <div class="table-responsive">
+            <table class="table table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th>Arena</th>
+                        <th>Vencimento</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Data de Pagamento</th>
+                        <th>Observações</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in subscriptions %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'saas:arena_detail' sub.arena.pk %}" class="text-white fw-bold text-decoration-none">
+                                {{ sub.arena.name }}
+                            </a>
+                            <div class="small text-secondary">{{ sub.arena.owner_name|default:"Sem proprietário" }}</div>
+                        </td>
+                        <td class="fw-bold text-white">{{ sub.due_date|date:"d/m/Y" }}</td>
+                        <td class="fw-bold text-warning">R$ {{ sub.amount|floatformat:2 }}</td>
+                        <td>
+                            {% if sub.status == 'PAID' %}
+                            <span class="badge badge-success-subtle">PAGO</span>
+                            {% elif sub.status == 'OVERDUE' %}
+                            <span class="badge badge-danger-subtle">ATRASADO</span>
+                            {% else %}
+                            <span class="badge badge-warning-subtle">PENDENTE</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ sub.payment_date|date:"d/m/Y"|default:"-" }}</td>
+                        <td class="small text-secondary">{{ sub.notes|default:"-" }}</td>
+                        <td class="text-end">
+                            {% if sub.status != 'PAID' %}
+                            <a href="{% url 'saas:subscription_mark_paid' sub.pk %}" class="btn btn-sm btn-success py-1 px-2 fw-bold text-dark me-1" title="Confirmar Recebimento">
+                                <i class="bi bi-check-lg"></i> Dar Baixa
+                            </a>
+                            {% if sub.arena.whatsapp_link %}
+                            <a href="{{ sub.arena.whatsapp_link }}?text=Ol%C3%A1%20{{ sub.arena.owner_name|urlencode }},%20lembrete%20da%20mensalidade%20do%20sistema%20da%20{{ sub.arena.name|urlencode }}%20com%20vencimento%20em%20{{ sub.due_date|date:'d/m' }}%20no%20valor%20de%20R$%20{{ sub.amount }}." target="_blank" class="btn btn-sm btn-outline-success py-1 px-2 me-1" title="Cobrar no WhatsApp">
+                                <i class="bi bi-whatsapp"></i>
+                            </a>
+                            {% endif %}
+                            {% endif %}
+                            <a href="{% url 'saas:subscription_edit' sub.pk %}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-secondary">
+                            Nenhuma mensalidade encontrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="p-3 border-top border-secondary border-opacity-25 d-flex justify-content-center">
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link bg-dark text-secondary border-secondary" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link bg-dark text-light border-secondary">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link bg-dark text-secondary border-secondary" href="?page={{ page_obj.next_page_number }}">Próxima</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

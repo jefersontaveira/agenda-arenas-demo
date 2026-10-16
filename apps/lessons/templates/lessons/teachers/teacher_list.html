@@ -1,0 +1,148 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <!-- Flash message container para operações AJAX -->
+    <div id="ajax-flash-container"></div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 mb-1">Professores</h1>
+            <p class="text-body-secondary small mb-0">Gerencie a equipe técnica da sua arena.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'lessons:aulas' arena_slug=arena.slug %}" class="btn btn-action">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <button type="button" class="btn btn-action-primary" onclick="openNewTeacherModal();">
+                <i class="bi bi-person-plus-fill me-1"></i> Novo Professor
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 table-hover">
+                    <thead class="teacher-thead">
+                        <tr>
+                            <th class="ps-3 d-md-none">Professor</th>
+                            <th class="ps-4 d-none d-md-table-cell" style="width: 80px;">Cor</th>
+                            <th class="d-none d-md-table-cell">Nome</th>
+                            <th class="d-none d-md-table-cell">Contato</th>
+                            <th class="text-end pe-4 d-none d-md-table-cell" style="width: 130px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in teachers %}
+                        <tr>
+                            <!-- VISÃO MOBILE -->
+                            <td class="d-md-none p-3">
+                                <div class="d-flex align-items-start gap-3 mb-2">
+                                    <div class="rounded-circle shadow-sm border flex-shrink-0 mt-1"
+                                         style="width: 32px; height: 32px; background-color: {{ teacher.color }};"
+                                         title="Cor na agenda"></div>
+                                    <div class="flex-grow-1" style="min-width: 0;">
+                                        <div class="fw-bold text-body fs-6" style="white-space: normal; word-break: break-word;">{{ teacher.name }}</div>
+                                        <div class="mt-1">
+                                            <small class="text-body-secondary d-block mb-1"><i class="bi bi-whatsapp text-success me-1"></i> {{ teacher.phone }}</small>
+                                            {% if teacher.email %}
+                                                <small class="text-body-secondary d-block" style="white-space: normal; word-break: break-all;"><i class="bi bi-envelope me-1"></i> {{ teacher.email }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-3 pt-2 border-top">
+                                    <button type="button" class="btn btn-sm btn-action flex-grow-1" title="Editar Professor"
+                                            data-id="{{ teacher.pk }}"
+                                            data-name="{{ teacher.name|escape }}"
+                                            data-phone="{{ teacher.phone }}"
+                                            data-email="{{ teacher.email|default:'' }}"
+                                            data-color="{{ teacher.color }}"
+                                            data-url="{% url 'lessons:teacher_update' arena_slug=arena.slug pk=teacher.pk %}"
+                                            onclick="openEditTeacherModal(this);">
+                                        <i class="bi bi-pencil me-1"></i> Editar
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-action-danger flex-grow-1" title="Excluir Professor"
+                                            data-id="{{ teacher.pk }}"
+                                            data-name="{{ teacher.name|escape }}"
+                                            data-url="{% url 'lessons:teacher_delete' arena_slug=arena.slug pk=teacher.pk %}"
+                                            onclick="openDeleteTeacherModal(this);">
+                                        <i class="bi bi-trash me-1"></i> Excluir
+                                    </button>
+                                </div>
+                            </td>
+
+                            <!-- VISÃO DESKTOP -->
+                            <td class="ps-4 d-none d-md-table-cell">
+                                <div class="rounded-circle shadow-sm border"
+                                     style="width: 32px; height: 32px; background-color: {{ teacher.color }};"
+                                     title="Cor na agenda"></div>
+                            </td>
+                            <td class="fw-bold text-body d-none d-md-table-cell">{{ teacher.name }}</td>
+                            <td class="d-none d-md-table-cell">
+                                <div><i class="bi bi-whatsapp text-success me-1"></i> {{ teacher.phone }}</div>
+                                {% if teacher.email %}
+                                    <small class="text-body-secondary"><i class="bi bi-envelope me-1"></i> {{ teacher.email }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4 d-none d-md-table-cell">
+                                <div class="d-inline-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-action" title="Editar Professor"
+                                            data-id="{{ teacher.pk }}"
+                                            data-name="{{ teacher.name|escape }}"
+                                            data-phone="{{ teacher.phone }}"
+                                            data-email="{{ teacher.email|default:'' }}"
+                                            data-color="{{ teacher.color }}"
+                                            data-url="{% url 'lessons:teacher_update' arena_slug=arena.slug pk=teacher.pk %}"
+                                            onclick="openEditTeacherModal(this);">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-action-danger" title="Excluir Professor"
+                                            data-id="{{ teacher.pk }}"
+                                            data-name="{{ teacher.name|escape }}"
+                                            data-url="{% url 'lessons:teacher_delete' arena_slug=arena.slug pk=teacher.pk %}"
+                                            onclick="openDeleteTeacherModal(this);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-body-secondary">
+                                <i class="bi bi-person-x fs-1 mb-2 d-block opacity-50"></i>
+                                Nenhum professor cadastrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'lessons/modals/_teacher_modal.html' %}
+
+<style>
+    .teacher-thead th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 800;
+        font-size: 0.82rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--bs-border-color);
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+    [data-bs-theme="dark"] .teacher-thead th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-color: #2c323e !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+</style>
+{% endblock %}

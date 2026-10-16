@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <div class="card shadow text-center">
+        <div class="card-header bg-primary text-white">
+            <h3>Pagamento via PIX</h3>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">Reserva: {{ booking.court.name }}</h5>
+            <p class="text-muted">{{ booking.start_time|date:"d/m/Y H:i" }}</p>
+
+            <h2 class="text-success my-3">R$ {{ pix_data.amount }}</h2>
+
+            <hr>
+
+            {% if pix_data.qr_code_base64 %}
+                <img src="data:image/jpeg;base64,{{ pix_data.qr_code_base64 }}"
+                     alt="QR Code Pix" class="img-fluid mb-3" style="max-width: 250px;">
+            {% endif %}
+
+            <p>Escaneie o QR Code acima ou copie o código abaixo:</p>
+
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" value="{{ pix_data.qr_code }}" id="pixCode" readonly>
+                <button class="btn btn-outline-secondary" type="button" onclick="copiarPix()">Copiar</button>
+            </div>
+
+            <div class="alert alert-warning mt-3">
+                <i class="bi bi-clock"></i> Aguardando confirmação do pagamento...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copiarPix() {
+    var copyText = document.getElementById("pixCode");
+    copyText.select();
+    navigator.clipboard.writeText(copyText.value);
+    alert("Código Pix copiado!");
+}
+
+// Opcional: Script para ficar verificando se pagou (Polling)
+// Podemos adicionar depois
+</script>
+{% endblock %}

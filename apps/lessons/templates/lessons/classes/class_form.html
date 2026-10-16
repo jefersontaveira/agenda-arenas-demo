@@ -1,0 +1,230 @@
+{% extends 'backoffice/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}{{ titulo_pagina|default:"Nova Turma" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 mb-1">{{ titulo_pagina|default:"Nova Turma" }}</h1>
+            <p class="text-body-secondary small mb-0">Preencha os dados e horários semanais da turma.</p>
+        </div>
+        <a href="{% url 'lessons:aulas' arena_slug=view.kwargs.arena_slug %}" class="btn btn-action">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <form method="post" id="class-form">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <div class="card shadow-sm mb-4 border-0">
+                    <div class="card-header bg-transparent py-3 border-bottom">
+                        <h5 class="mb-0 text-body fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Dados da Turma</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold">{{ form.name.label }}</label>
+                                {{ form.name }}
+                                <div class="text-danger small">{{ form.name.errors }}</div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-3">
+                                <label class="form-label fw-bold">{{ form.teacher.label }}</label>
+                                {{ form.teacher }}
+                                <div class="text-danger small">{{ form.teacher.errors }}</div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-3">
+                                <label class="form-label fw-bold">{{ form.court.label }}</label>
+                                {{ form.court }}
+                                <div class="text-danger small">{{ form.court.errors }}</div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4">
+                                <label class="form-label fw-bold">{{ form.monthly_price.label }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-body-tertiary">R$</span>
+                                    {{ form.monthly_price }}
+                                </div>
+                                <div class="text-danger small">{{ form.monthly_price.errors }}</div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4">
+                                <label class="form-label fw-bold">{{ form.max_students.label }}</label>
+                                {{ form.max_students }}
+                                <div class="text-danger small">{{ form.max_students.errors }}</div>
+                            </div>
+
+                            <div class="col-12 col-md-4 d-flex align-items-center mt-3 mt-md-4">
+                                <div class="form-check form-switch ps-5">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label fw-bold" for="{{ form.is_active.id_for_label }}">
+                                        Turma Ativa?
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold">{{ form.description.label }}</label>
+                                {{ form.description }}
+                                <div class="text-body-secondary small mt-1">Breve descrição sobre o nível ou requisitos da turma.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4 border-0">
+                    <div class="card-header bg-transparent py-3 d-flex flex-wrap gap-2 justify-content-between align-items-center border-bottom">
+                        <h5 class="mb-0 text-body fw-bold"><i class="bi bi-calendar-week me-2 text-warning"></i>Horários Semanais</h5>
+                        <button type="button" id="add-schedule" class="btn btn-sm btn-action-primary">
+                            <i class="bi bi-plus-lg"></i> Adicionar Horário
+                        </button>
+                    </div>
+
+                    <div class="card-body p-4">
+                        {{ schedules.management_form }}
+
+                        {% if schedules.non_form_errors %}
+                            <div class="alert alert-danger">{{ schedules.non_form_errors }}</div>
+                        {% endif %}
+
+                        <div id="schedule-container">
+                            {% for schedule_form in schedules %}
+                                <div class="schedule-row card mb-3 border shadow-sm">
+                                    <div class="card-body py-3">
+                                        {% for hidden in schedule_form.hidden_fields %}
+                                            {{ hidden }}
+                                        {% endfor %}
+
+                                        <div class="row g-3 align-items-end">
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label small text-body-secondary text-uppercase fw-bold">Dia da Semana</label>
+                                                {{ schedule_form.day_of_week }}
+                                                <div class="text-danger small">{{ schedule_form.day_of_week.errors }}</div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="form-label small text-body-secondary text-uppercase fw-bold">Início</label>
+                                                {{ schedule_form.start_time }}
+                                                <div class="text-danger small">{{ schedule_form.start_time.errors }}</div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <label class="form-label small text-body-secondary text-uppercase fw-bold">Fim</label>
+                                                {{ schedule_form.end_time }}
+                                                <div class="text-danger small">{{ schedule_form.end_time.errors }}</div>
+                                            </div>
+
+                                            <div class="col-12 col-md-2 text-end">
+                                                {% if schedules.can_delete %}
+                                                    {% if schedule_form.instance.pk %}
+                                                        <div class="d-none">
+                                                            {{ schedule_form.DELETE }}
+                                                        </div>
+                                                        <button type="button" class="btn btn-action-danger delete-existing-schedule w-100 w-md-auto" title="Excluir Horário">
+                                                            <i class="bi bi-trash me-1 d-md-none"></i><span class="d-md-none">Excluir</span><i class="bi bi-trash d-none d-md-inline"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <button type="button" class="btn btn-action-danger remove-schedule w-100 w-md-auto" title="Remover linha">
+                                                            <i class="bi bi-trash me-1 d-md-none"></i><span class="d-md-none">Remover</span><i class="bi bi-trash d-none d-md-inline"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div id="empty-form" class="d-none">
+                            <div class="schedule-row card mb-3 border shadow-sm border-start border-4 border-warning">
+                                <div class="card-body py-3">
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label small text-body-secondary text-uppercase fw-bold">Dia da Semana</label>
+                                            {{ schedules.empty_form.day_of_week }}
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label small text-body-secondary text-uppercase fw-bold">Início</label>
+                                            {{ schedules.empty_form.start_time }}
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label small text-body-secondary text-uppercase fw-bold">Fim</label>
+                                            {{ schedules.empty_form.end_time }}
+                                        </div>
+                                        <div class="col-12 col-md-2 text-end">
+                                            <button type="button" class="btn btn-action-danger remove-schedule w-100 w-md-auto" title="Remover linha">
+                                                <i class="bi bi-trash me-1 d-md-none"></i><span class="d-md-none">Remover</span><i class="bi bi-trash d-none d-md-inline"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end flex-wrap gap-2 mb-5">
+                    <a href="{% url 'lessons:grade_completa' arena_slug=view.kwargs.arena_slug %}" class="btn btn-action px-4">Cancelar</a>
+                    <button type="submit" class="btn btn-action-primary px-4 fw-bold">
+                        <i class="bi bi-check-lg me-1"></i>{{ texto_botao|default:"Salvar Dados" }}
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function initScheduleFormset() {
+        const addBtn = document.getElementById('add-schedule');
+        const container = document.getElementById('schedule-container');
+        const totalFormsInput = document.getElementById('id_schedules-TOTAL_FORMS');
+        const emptyFormTemplate = document.getElementById('empty-form');
+
+        if (!addBtn || !container || !totalFormsInput || !emptyFormTemplate) return;
+
+        addBtn.onclick = function() {
+            const formIdx = parseInt(totalFormsInput.value);
+            const newFormHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, formIdx);
+            container.insertAdjacentHTML('beforeend', newFormHtml);
+            totalFormsInput.value = formIdx + 1;
+        };
+
+        container.onclick = function(e) {
+            const btnRemove = e.target.closest('.remove-schedule');
+            if (btnRemove) {
+                btnRemove.closest('.schedule-row').remove();
+                return;
+            }
+
+            const btnDelete = e.target.closest('.delete-existing-schedule');
+            if (btnDelete) {
+                const row = btnDelete.closest('.schedule-row');
+                const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                if (deleteInput) {
+                    deleteInput.checked = true;
+                    row.style.display = 'none';
+                }
+            }
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', initScheduleFormset);
+    document.addEventListener('turbo:render', initScheduleFormset);
+</script>
+
+{% endblock %}

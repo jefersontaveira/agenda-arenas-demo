@@ -1,0 +1,130 @@
+{% for cobranca in cobrancas %}
+<tr id="cobranca-row-{{ cobranca.pk }}" style="cursor: pointer;" onclick="if(!event.target.closest('button, a')) window.location='{% url 'lessons:financial_detail' arena_slug=arena.slug pk=cobranca.pk %}'">
+    <!-- =====================================
+         VISÃO MOBILE (< 768px)
+         ===================================== -->
+    <td class="d-md-none p-3 border-bottom">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="pe-2">
+                <div class="fw-bold text-body fs-6">{{ cobranca.enrollment.customer.name }}</div>
+                <small class="text-body-secondary d-flex align-items-center gap-1 mt-0.5">
+                    <i class="bi bi-mortarboard text-warning"></i>{{ cobranca.enrollment.class_group.name }}
+                </small>
+            </div>
+            <div class="text-end text-nowrap">
+                <div class="fw-bold text-body fs-6">R$ {{ cobranca.value }}</div>
+                <small class="{% if cobranca.status == 'OVERDUE' %}text-danger fw-bold{% else %}text-body-secondary{% endif %}">
+                    Venc: {{ cobranca.due_date|date:"d/m/y" }}
+                </small>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-secondary border-opacity-10">
+            <div>
+                {% if cobranca.status == 'PAID' %}
+                    <span class="status-badge status-badge-paid">
+                        <i class="bi bi-check-circle-fill me-1"></i>Pago
+                    </span>
+                    {% if cobranca.paid_at %}
+                        <span class="status-subtext ms-1">({{ cobranca.paid_at|date:"d/m" }})</span>
+                    {% endif %}
+                {% elif cobranca.status == 'PENDING' %}
+                    <span class="status-badge status-badge-pending">
+                        <i class="bi bi-clock-fill me-1"></i>Pendente
+                    </span>
+                {% elif cobranca.status == 'OVERDUE' %}
+                    <span class="status-badge status-badge-overdue">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Atrasado
+                    </span>
+                {% else %}
+                    <span class="status-badge status-badge-canceled">
+                        <i class="bi bi-x-circle-fill me-1"></i>Cancelado
+                    </span>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                {% if cobranca.status == 'PENDING' or cobranca.status == 'OVERDUE' %}
+                    <button type="button" class="btn-action-pay btn-action-pay-ajax" data-url="{% url 'lessons:fee_pay' arena_slug=arena.slug pk=cobranca.pk %}" title="Confirmar Pagamento">
+                        <i class="bi bi-check-lg"></i> Receber
+                    </button>
+                    {% if cobranca.enrollment.customer.phone %}
+                    <a href="https://wa.me/{{ cobranca.enrollment.customer.phone }}?text=Ol%C3%A1%20{{ cobranca.enrollment.customer.name|urlencode }}%2C%20sua%20mensalidade%20vence%20dia%20{{ cobranca.due_date|date:'d/m' }}." target="_blank" class="btn-action-whatsapp" title="Enviar WhatsApp">
+                        <i class="bi bi-whatsapp"></i>
+                    </a>
+                    {% endif %}
+                {% elif cobranca.status == 'PAID' %}
+                    <button type="button" class="btn btn-sm btn-action text-body-secondary btn-action-undo-ajax" data-url="{% url 'lessons:fee_undo_pay' arena_slug=arena.slug pk=cobranca.pk %}" title="Desfazer Pagamento">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Desfazer
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </td>
+
+    <!-- =====================================
+         VISÃO DESKTOP (>= 768px)
+         ===================================== -->
+    <td class="ps-4 d-none d-md-table-cell">
+        <div class="fw-bold {% if cobranca.status == 'OVERDUE' %}text-danger{% else %}text-body{% endif %}">
+            {{ cobranca.due_date|date:"d/m/Y" }}
+        </div>
+        <small class="text-body-secondary">Ref: {{ cobranca.reference_date|date:"F/Y" }}</small>
+    </td>
+    <td class="d-none d-md-table-cell">
+        <div class="fw-bold text-body">{{ cobranca.enrollment.customer.name }}</div>
+        <small class="text-body-secondary">{{ cobranca.enrollment.class_group.name }}</small>
+    </td>
+    <td class="fw-bold text-body d-none d-md-table-cell">
+        R$ {{ cobranca.value }}
+    </td>
+    <td class="d-none d-md-table-cell">
+        {% if cobranca.status == 'PAID' %}
+            <span class="status-badge status-badge-paid">
+                <i class="bi bi-check-circle-fill me-1"></i>Pago
+            </span>
+            {% if cobranca.paid_at %}
+                <div class="status-subtext">em {{ cobranca.paid_at|date:"d/m/Y" }}</div>
+            {% endif %}
+        {% elif cobranca.status == 'PENDING' %}
+            <span class="status-badge status-badge-pending">
+                <i class="bi bi-clock-fill me-1"></i>Pendente
+            </span>
+        {% elif cobranca.status == 'OVERDUE' %}
+            <span class="status-badge status-badge-overdue">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>Atrasado
+            </span>
+        {% else %}
+            <span class="status-badge status-badge-canceled">
+                <i class="bi bi-x-circle-fill me-1"></i>Cancelado
+            </span>
+        {% endif %}
+    </td>
+    <td class="text-end pe-4 d-none d-md-table-cell">
+        <div class="d-inline-flex align-items-center gap-1">
+            {% if cobranca.status == 'PENDING' or cobranca.status == 'OVERDUE' %}
+                <button type="button" class="btn-action-pay btn-action-pay-ajax" data-url="{% url 'lessons:fee_pay' arena_slug=arena.slug pk=cobranca.pk %}" title="Confirmar Pagamento">
+                    <i class="bi bi-check-lg"></i> Receber
+                </button>
+                {% if cobranca.enrollment.customer.phone %}
+                <a href="https://wa.me/{{ cobranca.enrollment.customer.phone }}?text=Ol%C3%A1%20{{ cobranca.enrollment.customer.name|urlencode }}%2C%20sua%20mensalidade%20vence%20dia%20{{ cobranca.due_date|date:'d/m' }}." target="_blank" class="btn-action-whatsapp" title="Enviar WhatsApp">
+                    <i class="bi bi-whatsapp"></i>
+                </a>
+                {% endif %}
+            {% elif cobranca.status == 'PAID' %}
+                <button type="button" class="btn btn-sm btn-action text-body-secondary btn-action-undo-ajax" data-url="{% url 'lessons:fee_undo_pay' arena_slug=arena.slug pk=cobranca.pk %}" title="Desfazer Pagamento">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Desfazer
+                </button>
+            {% endif %}
+        </div>
+    </td>
+</tr>
+{% empty %}
+{% if not is_paginated or page_obj.number == 1 %}
+<tr>
+    <td colspan="5" class="text-center py-5 text-body-secondary">
+        <i class="bi bi-receipt fs-1 mb-2 d-block opacity-50"></i>
+        Nenhuma cobrança encontrada.
+    </td>
+</tr>
+{% endif %}
+{% endfor %}

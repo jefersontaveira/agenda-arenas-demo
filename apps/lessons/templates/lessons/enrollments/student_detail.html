@@ -1,0 +1,336 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex justify-content-between align-items-md-center flex-column flex-md-row gap-3 mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 mb-1">Detalhes do Aluno</h1>
+            <p class="text-body-secondary small mb-0">Visualize as informações da matrícula de {{ matricula.customer.name }}.</p>
+        </div>
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <a href="{% url 'lessons:student_list' arena_slug=arena.slug %}" class="btn btn-action">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <a href="{% url 'lessons:enrollment_update' arena_slug=arena.slug pk=matricula.pk %}" class="btn btn-action-primary">
+                <i class="bi bi-pencil me-1"></i> Editar Matrícula
+            </a>
+            <button type="button" class="btn btn-action-danger" 
+                    data-id="{{ matricula.pk }}"
+                    data-student="{{ matricula.customer.name|escape }}"
+                    data-class="{{ matricula.class_group.name|escape }}"
+                    data-url="{% url 'lessons:enrollment_delete' arena_slug=arena.slug pk=matricula.pk %}"
+                    onclick="openDeleteEnrollmentModal(this);">
+                <i class="bi bi-trash me-1"></i> Excluir
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Coluna de Informações do Cliente -->
+        <div class="col-12 col-md-5 col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4 text-center">
+                    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-person-fill fs-1"></i>
+                    </div>
+                    <h4 class="fw-bold mb-1">{{ matricula.customer.name }}</h4>
+                    <p class="text-muted small mb-3">Matriculado desde {{ matricula.start_date|date:"d/m/Y" }}</p>
+                    
+                    <div class="d-flex justify-content-center gap-2 mb-4">
+                        {% if matricula.customer.phone %}
+                        <a href="https://wa.me/55{{ matricula.customer.phone }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                            <i class="bi bi-whatsapp me-1"></i> WhatsApp
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <hr class="opacity-10">
+
+                    <div class="text-start mt-4">
+                        <h6 class="fw-bold text-uppercase text-muted small mb-3">Contato e Pessoal</h6>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Telefone</label>
+                            <span class="fw-medium">{{ matricula.customer.formatted_phone|default:matricula.customer.phone|default:"Não informado" }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Email</label>
+                            <span class="fw-medium">{{ matricula.customer.email|default:"Não informado" }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">CPF</label>
+                            <span class="fw-medium">{{ matricula.customer.cpf|default:"Não informado" }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Data de Nascimento</label>
+                            <span class="fw-medium">{{ matricula.customer.birth_date|date:"d/m/Y"|default:"Não informado" }}</span>
+                        </div>
+                    </div>
+
+                    <hr class="opacity-10">
+
+                    <div class="text-start mt-4">
+                        <h6 class="fw-bold text-uppercase text-muted small mb-3">Dados da Matrícula</h6>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Status</label>
+                            <div class="dropdown">
+                                <button class="btn btn-sm dropdown-toggle rounded-pill {% if matricula.status == 'ACTIVE' %}btn-success{% elif matricula.status == 'TRIAL' %}btn-info{% elif matricula.status == 'PAUSED' %}btn-warning{% else %}btn-secondary{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ matricula.get_status_display }}
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <form method="post" action="{% url 'lessons:enrollment_status_update' arena_slug=arena.slug pk=matricula.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="ACTIVE">
+                                            <button type="submit" class="dropdown-item">Ativo</button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form method="post" action="{% url 'lessons:enrollment_status_update' arena_slug=arena.slug pk=matricula.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="TRIAL">
+                                            <button type="submit" class="dropdown-item">Experimental</button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form method="post" action="{% url 'lessons:enrollment_status_update' arena_slug=arena.slug pk=matricula.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="PAUSED">
+                                            <button type="submit" class="dropdown-item">Suspenso</button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form method="post" action="{% url 'lessons:enrollment_status_update' arena_slug=arena.slug pk=matricula.pk %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="CANCELED">
+                                            <button type="submit" class="dropdown-item">Cancelado</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Turma</label>
+                            <a href="{% url 'lessons:class_detail' arena_slug=arena.slug pk=matricula.class_group.pk %}" class="fw-bold text-decoration-none text-body">
+                                {{ matricula.class_group.name }}
+                            </a>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Valor Acordado</label>
+                            <span class="fw-bold text-success">R$ {{ matricula.agreed_price }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Dia do Vencimento</label>
+                            <span class="fw-medium">Todo dia {{ matricula.due_day }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna de Histórico Financeiro -->
+        <div class="col-12 col-md-7 col-lg-8">
+            <div class="card shadow-sm border-0 mb-4 h-100">
+                <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-cash-coin text-warning me-2"></i> Histórico Financeiro</h5>
+                    <button type="button" class="btn btn-sm btn-action-primary" data-bs-toggle="modal" data-bs-target="#createStudentFeeModal">
+                        <i class="bi bi-receipt me-1"></i> Gerar Cobrança
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 table-hover">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4 d-none d-md-table-cell">Referência</th>
+                                    <th class="d-none d-md-table-cell">Vencimento</th>
+                                    <th class="d-none d-md-table-cell">Valor</th>
+                                    <th class="d-none d-md-table-cell">Status</th>
+                                    <th class="ps-3 d-md-none">Mensalidade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fee in fees %}
+                                <tr style="cursor: pointer;" onclick="window.location='{% url 'lessons:financial_detail' arena_slug=arena.slug pk=fee.pk %}'">
+                                    <!-- VISÃO MOBILE -->
+                                    <td class="d-md-none p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="fw-bold text-body">{{ fee.reference_date|date:"F / Y"|title }}</span>
+                                            <span class="fw-bold text-body">R$ {{ fee.value }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-body-secondary"><i class="bi bi-calendar-event me-1"></i> Vence: {{ fee.due_date|date:"d/m/Y" }}</small>
+                                            {% if fee.status == 'PAID' %}
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill"><i class="bi bi-check-circle-fill"></i> Pago</span>
+                                            {% elif fee.status == 'PENDING' %}
+                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 rounded-pill"><i class="bi bi-clock-fill"></i> Pendente</span>
+                                            {% elif fee.status == 'OVERDUE' %}
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 rounded-pill"><i class="bi bi-exclamation-triangle-fill"></i> Atrasado</span>
+                                            {% elif fee.status == 'CANCELED' %}
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 rounded-pill"><i class="bi bi-x-circle-fill"></i> Cancelado</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+
+                                    <!-- VISÃO DESKTOP -->
+                                    <td class="ps-4 text-nowrap fw-medium text-body d-none d-md-table-cell">
+                                        {{ fee.reference_date|date:"F / Y"|title }}
+                                    </td>
+                                    <td class="text-nowrap d-none d-md-table-cell">
+                                        {{ fee.due_date|date:"d/m/Y" }}
+                                    </td>
+                                    <td class="fw-bold d-none d-md-table-cell">
+                                        R$ {{ fee.value }}
+                                    </td>
+                                    <td class="d-none d-md-table-cell">
+                                        {% if fee.status == 'PAID' %}
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i> Pago</span>
+                                            <small class="d-block text-muted mt-1" style="font-size: 0.75rem;">em {{ fee.paid_at|date:"d/m/Y" }}</small>
+                                        {% elif fee.status == 'PENDING' %}
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 rounded-pill"><i class="bi bi-clock-fill me-1"></i> Pendente</span>
+                                        {% elif fee.status == 'OVERDUE' %}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 rounded-pill"><i class="bi bi-exclamation-triangle-fill me-1"></i> Atrasado</span>
+                                        {% elif fee.status == 'CANCELED' %}
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 rounded-pill"><i class="bi bi-x-circle-fill me-1"></i> Cancelado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <i class="bi bi-receipt fs-1 mb-2 d-block opacity-50"></i>
+                                        Nenhuma mensalidade registrada para este aluno.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Gerar Cobrança para este Aluno -->
+<div class="modal fade" id="createStudentFeeModal" tabindex="-1" aria-labelledby="createStudentFeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center me-3" style="width: 44px; height: 44px;">
+                        <i class="bi bi-receipt fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="createStudentFeeModalLabel">Gerar Cobrança</h5>
+                        <small class="text-body-secondary">Aluno: <strong>{{ matricula.customer.name }}</strong></small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form method="post" action="{% url 'lessons:fee_create' arena_slug=arena.slug %}">
+                {% csrf_token %}
+                <input type="hidden" name="enrollment" value="{{ matricula.pk }}">
+                <input type="hidden" name="next" value="{% url 'lessons:student_detail' arena_slug=arena.slug pk=matricula.pk %}">
+
+                <div class="modal-body p-4">
+                    <div class="card bg-body-tertiary border p-3 rounded-3 mb-3">
+                        <div class="small text-body-secondary mb-1">Aluno / Matrícula</div>
+                        <div class="fw-bold text-body fs-6">{{ matricula.customer.name }}</div>
+                        <div class="small text-body-secondary">Turma: {{ matricula.class_group.name }} | Vencimento padrão: todo dia {{ matricula.due_day }}</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <!-- Mês de Referência -->
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_student_fee_ref_month">
+                                Mês de Referência <span class="text-danger">*</span>
+                            </label>
+                            <input type="month" name="reference_month" id="id_student_fee_ref_month" class="form-control" value="{% now 'Y-m' %}" required onchange="calculateStudentDueDate(this.value, {{ matricula.due_day }});">
+                        </div>
+
+                        <!-- Data de Vencimento -->
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_student_fee_due_date">
+                                Vencimento <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="due_date" id="id_student_fee_due_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-2">
+                        <!-- Valor -->
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1">
+                                Valor da Mensalidade <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary">R$</span>
+                                <input type="number" step="0.01" name="value" class="form-control" value="{{ matricula.agreed_price }}" required>
+                            </div>
+                        </div>
+
+                        <!-- Status Inicial -->
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1">
+                                Status Inicial <span class="text-danger">*</span>
+                            </label>
+                            <select name="status" class="form-select">
+                                <option value="PENDING" selected>Pendente</option>
+                                <option value="PAID">Pago (Recebido)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-text small mt-2">
+                        <i class="bi bi-shield-check text-success me-1"></i> A cobrança não iniciará atrasada caso a data original já tenha passado.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-action-primary px-4">
+                        <i class="bi bi-check-lg me-1"></i> Gerar Cobrança
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculateStudentDueDate(refMonthVal, dueDay) {
+        const input = document.getElementById('id_student_fee_due_date');
+        if (!refMonthVal || !input) return;
+        const parts = refMonthVal.split('-');
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const lastDay = new Date(year, month, 0).getDate();
+        const targetDay = Math.min(dueDay, lastDay);
+        const dayStr = String(targetDay).padStart(2, '0');
+        const monthStr = String(month).padStart(2, '0');
+        let targetDate = `${year}-${monthStr}-${dayStr}`;
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (targetDate < todayStr) targetDate = todayStr;
+        input.value = targetDate;
+    }
+    document.addEventListener("DOMContentLoaded", function() {
+        const refInput = document.getElementById('id_student_fee_ref_month');
+        if (refInput) {
+            calculateStudentDueDate(refInput.value, {{ matricula.due_day }});
+        }
+    });
+</script>
+
+{% include 'lessons/modals/_enrollment_modal.html' %}
+
+{% endblock %}

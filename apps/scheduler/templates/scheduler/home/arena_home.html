@@ -1,0 +1,597 @@
+{% load static %} <!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ arena.name }} - Reservas Online</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'scheduler/css/arena_home.css' %}">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <!-- ESTILOS DINÂMICOS PERSONALIZADOS DA ARENA -->
+    <style>
+        :root {
+            --brand-color: {{ arena.config.primary_color|default:'#FFC107' }};
+            --brand-dark: {{ arena.config.secondary_color|default:'#212529' }};
+        }
+        {% if arena.config.hero_image %}
+        .hero-section {
+            background: url('{{ arena.config.hero_image.url }}') center/cover no-repeat !important;
+        }
+        {% endif %}
+
+        .text-brand { color: var(--brand-color) !important; }
+        .bg-brand { background-color: var(--brand-color) !important; }
+        .border-brand { border-color: var(--brand-color) !important; }
+
+        /* Adapta botões e componentes amarelos do bootstrap para a cor da arena */
+        .btn-warning, .btn-brand {
+            background-color: var(--brand-color) !important;
+            border-color: var(--brand-color) !important;
+            color: var(--brand-dark) !important;
+        }
+        .btn-warning:hover, .btn-brand:hover {
+            filter: brightness(0.92);
+            color: var(--brand-dark) !important;
+        }
+        .text-warning {
+            color: var(--brand-color) !important;
+        }
+        .bg-warning {
+            background-color: var(--brand-color) !important;
+        }
+
+        /* Botão Flutuante do WhatsApp */
+        .whatsapp-float-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1050;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background-color: #25D366;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 1.8rem;
+        }
+        .whatsapp-float-btn:hover {
+            transform: scale(1.1);
+            color: white;
+            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.6);
+        }
+    </style>
+
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-white shadow-sm fixed-top py-3">
+    <div class="container">
+
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
+            {% if arena.config.logo %}
+                <img src="{{ arena.config.logo.url }}" alt="{{ arena.name }}" style="height: 50px; max-width: 160px; object-fit: contain;">
+            {% else %}
+                <div class="rounded-3 d-flex align-items-center justify-content-center text-dark fw-bold" style="width: 40px; height: 40px; background-color: var(--brand-color);">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
+                <span class="text-truncate fw-bold" style="max-width: 220px;">{{ arena.name }}</span>
+            {% endif %}
+        </a>
+
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Alternar navegação">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <div class="d-flex align-items-center ms-auto gap-2 mt-3 mt-lg-0">
+                <!-- Estado: Atleta Identificado -->
+                <div id="playerIdentifiedNav" class="d-none align-items-center gap-2">
+                    <a href="{% url 'scheduler:my_bookings' arena_slug=arena.slug %}" class="btn btn-light border rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-2 shadow-sm text-decoration-none"
+                            style="font-size: 0.9rem;">
+                        <span class="rounded-circle d-flex align-items-center justify-content-center text-dark"
+                              style="width: 28px; height: 28px; background-color: var(--brand-color); font-size: 0.85rem;">
+                            <i class="bi bi-person-fill"></i>
+                        </span>
+                        <span id="navPlayerName" class="text-truncate" style="max-width: 150px;">Atleta</span>
+                        <span class="badge bg-dark rounded-pill ms-1" style="font-size: 0.72rem;">Meus Jogos</span>
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+                            title="Trocar Atleta / Sair" onclick="logoutPlayer()" style="width: 36px; height: 36px; cursor: pointer; position: relative; z-index: 2;">
+                        <i class="bi bi-box-arrow-right" style="pointer-events: none;"></i>
+                    </button>
+                </div>
+
+                <!-- Estado: Convidado / Não Identificado -->
+                <div id="playerGuestNav">
+                    <a href="{% url 'scheduler:my_bookings' arena_slug=arena.slug %}" class="btn btn-outline-dark rounded-pill px-3 py-2 fw-bold text-decoration-none"
+                            style="font-size: 0.9rem;">
+                        <i class="bi bi-person-circle me-1"></i> Meus Agendamentos
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function() {
+                try {
+                    const slug = "{{ arena.slug }}";
+                    const keys = ['arena_athlete_' + slug, 'athlete_session_' + slug, 'athlete_profile'];
+                    let player = null;
+                    for (const k of keys) {
+                        const r = localStorage.getItem(k);
+                        if (r) {
+                            const p = JSON.parse(r);
+                            if (p && (p.name || p.phone)) {
+                                player = p;
+                                break;
+                            }
+                        }
+                    }
+                    if (player) {
+                        const guestNav = document.getElementById('playerGuestNav');
+                        const identifiedNav = document.getElementById('playerIdentifiedNav');
+                        const nameSpan = document.getElementById('navPlayerName');
+                        if (guestNav) guestNav.classList.add('d-none');
+                        if (identifiedNav) {
+                            identifiedNav.classList.remove('d-none');
+                            identifiedNav.classList.add('d-flex');
+                        }
+                        if (nameSpan) {
+                            const firstName = (player.name || '').trim().split(' ')[0] || 'Atleta';
+                            nameSpan.innerText = firstName;
+                        }
+                    }
+                } catch(e) {}
+            })();
+        </script>
+
+    </div>
+</nav>
+
+<div class="hero-section mt-5 pt-4">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1 class="display-5 fw-bold mb-3">{{ arena.config.hero_title|default:"Agende já sua quadra" }}</h1>
+        <p class="lead text-white-50 mb-4">{{ arena.config.hero_subtitle|default:"Escolha sua modalidade e garanta seu horário." }}</p>
+        <a href="#agendamento-area" class="btn btn-brand rounded-pill px-5 py-3 shadow-lg">
+            AGENDAR AGORA
+        </a>
+    </div>
+</div>
+
+<div class="container py-5 mb-5" id="agendamento-area">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="mb-5">
+        <h6 class="text-uppercase text-muted fw-bold mb-3 small ls-1">1. Escolha a Modalidade</h6>
+        <div class="d-flex flex-wrap gap-2 pb-2" id="modalities-container">
+            <a href="?date={{ selected_date|date:'Y-m-d' }}"
+               class="modality-btn text-decoration-none {% if not selected_modality_id %}active{% endif %}">
+               <i class="bi bi-collection-fill me-1"></i> Todos
+            </a>
+            {% for mod in modalities %}
+            <a href="?modality={{ mod.id }}&date={{ selected_date|date:'Y-m-d' }}"
+               class="modality-btn text-decoration-none {% if selected_modality_id == mod.id %}active{% endif %}">
+               {% if mod.icon %}
+                   <i class="{{ mod.icon }} me-1"></i>
+               {% else %}
+                   <span class="me-1">{{ mod.emoji|default:'🏐' }}</span>
+               {% endif %}
+               {{ mod.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="modern-card p-4 mb-5 d-flex align-items-center ripple-effect"
+         id="date-card-trigger"
+         style="cursor: pointer; position: relative;">
+
+        <div class="rounded-circle d-flex align-items-center justify-content-center me-4" style="width: 50px; height: 50px; background-color: var(--brand-color); color: var(--brand-dark);">
+            <i class="bi bi-calendar-week-fill fs-4"></i>
+        </div>
+
+        <div class="flex-grow-1">
+            <label class="text-uppercase text-muted fw-bold small mb-1 d-block">2. Escolha a Data</label>
+            <h3 class="fw-bold text-dark mb-0" id="display-date-text">
+                {{ selected_date|date:"d/m/Y" }}
+            </h3>
+        </div>
+
+        <i class="bi bi-chevron-down text-muted opacity-50"></i>
+
+        <form id="dateForm" style="position: absolute; opacity: 0; pointer-events: none;">
+            <input type="hidden" name="modality" value="{{ selected_modality_id|default:'' }}">
+            <input type="text" id="dateInput" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+        </form>
+    </div>
+
+    <h6 class="text-uppercase text-muted fw-bold mb-3 small ls-1">Horários Disponíveis</h6>
+    <div id="slots-container">
+    {% if not available_slots %}
+        <div class="text-center py-5">
+            <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
+                <i class="bi bi-emoji-frown fs-1 text-muted opacity-50"></i>
+            </div>
+            <p class="h5 fw-bold text-muted">Nenhum horário livre.</p>
+            <small class="text-muted">Tente mudar a data ou o esporte acima.</small>
+        </div>
+    {% else %}
+        <div class="d-grid gap-3">
+           {% for slot in available_slots %}
+
+                {% if slot.is_full %}
+                    <div class="card slot-card bg-light border-0 opacity-75" style="pointer-events: none; user-select: none;">
+                        <div class="card-body d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 p-3 p-md-4">
+                            <div class="d-flex align-items-center gap-3 flex-grow-1">
+                                <h2 class="h3 fw-bold mb-0 text-muted text-decoration-line-through">{{ slot.time|date:"H:i" }}</h2>
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-3 py-2 ms-auto ms-sm-0">
+                                    Esgotado
+                                </span>
+                            </div>
+
+                            <div class="d-flex justify-content-sm-end flex-grow-1 flex-sm-grow-0">
+                                <button class="btn btn-secondary rounded-pill px-4 py-2 disabled flex-grow-1 flex-sm-grow-0" style="opacity: 0.5; min-width: 140px;">
+                                    Indisponível
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="card slot-card bg-white shadow-sm border-0">
+                        <div class="card-body d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 p-3 p-md-4">
+                            <div class="d-flex align-items-center gap-3 flex-grow-1">
+                                <h2 class="h3 fw-bold mb-0 text-dark">{{ slot.time|date:"H:i" }}</h2>
+                                <span class="badge bg-light text-dark border rounded-pill px-3 py-2 ms-auto ms-sm-0">
+                                    {{ slot.courts|length }} quadra(s)
+                                </span>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-3 flex-grow-1 flex-sm-grow-0 justify-content-between justify-content-sm-end">
+                                <div class="text-end d-block">
+                                    <div class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">A partir de</div>
+                                    <div class="h5 fw-bold text-dark mb-0">R$ {{ slot.price|floatformat:2 }}</div>
+                                </div>
+
+                                <button class="btn btn-brand rounded-pill px-4 py-2 flex-grow-1 flex-sm-grow-0"
+                                        style="min-width: 140px;"
+                                        onclick='openBookingModal(
+                                            "{{ slot.time|date:"H:i" }}",
+                                            "{{ selected_date|date:"Y-m-d" }}",
+                                            {{ slot.courts_json|safe }},
+                                            {{ slot.price|stringformat:".2f" }},
+                                            {{ slot.equipments_json|safe }}  )'>
+                                    Reservar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% endfor %}
+        </div>
+    {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="bookingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold">Finalizar Reserva</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="post" action="{% url 'scheduler:booking_action' arena_slug=arena.slug %}" style="display: contents;">
+    <div class="modal-body px-4 pt-2 pb-4">
+        {% csrf_token %}
+
+        <input type="hidden" name="date" id="modalDate">
+        <input type="hidden" name="time" id="modalTime">
+
+        <div class="bg-dark text-white rounded-4 p-3 text-center mb-4 mt-3 position-relative overflow-hidden">
+            <div class="position-absolute top-0 start-0 w-100 h-100 bg-gradient opacity-50" style="background: linear-gradient(45deg, var(--brand-color), transparent);"></div>
+            <div class="position-relative z-2">
+                <div class="small text-uppercase opacity-75 fw-bold">Horário Selecionado</div>
+                <div class="display-4 fw-bold text-warning" id="displayTime">--:--</div>
+                <div class="text-white opacity-75" id="displayDate">--/--/----</div>
+            </div>
+        </div>
+
+        <div id="bookingPlayerIdentifiedNotice" class="alert alert-light border rounded-4 py-2 px-3 mb-3 d-flex justify-content-between align-items-center shadow-sm" style="display: none;">
+            <div class="small text-truncate me-2">
+                <i class="bi bi-person-check-fill text-success me-1"></i>
+                Reservando como: <strong id="bookingIdentifiedPlayerName">--</strong>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 fw-bold text-nowrap" onclick="logoutPlayer();" style="font-size: 0.8rem; cursor: pointer;">
+                <i class="bi bi-arrow-repeat me-1" style="pointer-events: none;"></i> Trocar Atleta
+            </button>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold small text-muted text-uppercase">Onde vai ser?</label>
+            <select name="court_id" id="modalCourtSelect" class="form-select form-select-lg bg-light border-0 fw-bold text-dark rounded-3" required>
+            </select>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-bold small text-muted text-uppercase">Seu CPF</label>
+                {{ form.customer_cpf }}
+                <div id="error-cpf" class="text-danger small mt-1" style="display: none;">CPF deve conter 11 dígitos</div>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-bold small text-muted text-uppercase">{{ form.customer_name.label }}</label>
+                {{ form.customer_name }}
+                <div id="error-name" class="text-danger small mt-1" style="display: none;">O nome é muito curto</div>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-bold small text-muted text-uppercase">{{ form.customer_phone.label }}</label>
+                {{ form.customer_phone }}
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-bold small text-muted text-uppercase">{{ form.customer_email.label }}</label>
+                {{ form.customer_email }}
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold small text-muted text-uppercase">Adicionais</label>
+            <div id="modalEquipmentList" class="row g-2">
+                </div>
+        </div>
+
+        <hr class="border-secondary opacity-10 my-4">
+
+        <h6 class="fw-bold small text-muted text-uppercase mb-3">Forma de Pagamento</h6>
+
+        <!-- AVISO DE DEMONSTRAÇÃO: PAGAMENTO ONLINE DESATIVADO -->
+        <div class="p-3 mb-3 rounded-3" style="background: rgba(255, 193, 7, 0.12); border: 1px dashed rgba(255, 193, 7, 0.45);">
+            <div class="d-flex align-items-center gap-2 mb-1 text-warning fw-bold small">
+                <i class="bi bi-shield-lock-fill"></i>
+                <span>Pagamento Online Desativado no Modo de Teste</span>
+            </div>
+            <p class="small text-muted mb-0" style="font-size: 0.8rem; line-height: 1.4;">
+                Neste ambiente de demonstração, o gateway bancário de cobrança via PIX real está bloqueado para evitar transações reais. 
+                Para testar a criação de agendamentos e o controle das quadras livremente, utilize o <strong>Painel do Gestor</strong>.
+            </p>
+        </div>
+
+        <input type="hidden" name="payment_type" id="inputPaymentType" value="total">
+
+        {% with policy=arena.config.payment_policy|default:'FULL_OR_HALF' %}
+        {% if policy == 'FULL_ONLY' %}
+            <!-- POLÍTICA 1: APENAS 100% -->
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="btn btn-warning border-0 shadow w-100 p-3 h-100 text-start position-relative payment-option active"
+                           onclick="selectPayment('total')" id="btnTotal">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold opacity-75">PAGAMENTO INTEGRAL (100%)</span>
+                            <i class="bi bi-check-circle-fill text-dark check-icon"></i>
+                        </div>
+                        <div class="h4 fw-bold mb-0" id="displayTotalPrice">R$ --</div>
+                        <small class="opacity-75" style="font-size: 0.75rem;">Simulação de pagamento via Pix</small>
+                    </label>
+                </div>
+            </div>
+
+        {% elif policy == 'ALL_OPTIONS' %}
+            <!-- POLÍTICA 3: 100%, 50% OU PAGAR NA ARENA -->
+            <div class="row g-2">
+                <div class="col-12 col-sm-4">
+                    <label class="btn btn-outline-light text-dark border-0 shadow-sm w-100 p-2 p-md-3 h-100 text-start position-relative payment-option"
+                           onclick="selectPayment('partial')" id="btnPartial">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted fw-bold">SINAL</span>
+                            <i class="bi bi-circle text-warning check-icon"></i>
+                        </div>
+                        <div class="h5 fw-bold mb-0" id="displayPartialPrice">R$ --</div>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Pague 50% Pix</small>
+                    </label>
+                </div>
+
+                <div class="col-12 col-sm-4">
+                    <label class="btn btn-warning border-0 shadow w-100 p-2 p-md-3 h-100 text-start position-relative payment-option active"
+                           onclick="selectPayment('total')" id="btnTotal">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold opacity-75">TOTAL</span>
+                            <i class="bi bi-check-circle-fill text-dark check-icon"></i>
+                        </div>
+                        <div class="h5 fw-bold mb-0" id="displayTotalPrice">R$ --</div>
+                        <small class="opacity-75 d-block mt-1" style="font-size: 0.75rem;">Pague 100% Pix</small>
+                    </label>
+                </div>
+
+                <div class="col-12 col-sm-4">
+                    <label class="btn btn-outline-light text-dark border-0 shadow-sm w-100 p-2 p-md-3 h-100 text-start position-relative payment-option"
+                           onclick="selectPayment('venue')" id="btnVenue">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted fw-bold">NA ARENA</span>
+                            <i class="bi bi-circle text-warning check-icon"></i>
+                        </div>
+                        <div class="h5 fw-bold mb-0 text-dark">No Local</div>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Pague ao chegar</small>
+                    </label>
+                </div>
+            </div>
+
+        {% else %}
+            <!-- POLÍTICA 2: 100% OU 50% (PADRÃO) -->
+            <div class="row g-3">
+                <div class="col-6">
+                    <label class="btn btn-outline-light text-dark border-0 shadow-sm w-100 p-3 h-100 text-start position-relative payment-option"
+                           onclick="selectPayment('partial')" id="btnPartial">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted fw-bold">SINAL</span>
+                            <i class="bi bi-circle text-warning check-icon"></i>
+                        </div>
+                        <div class="h4 fw-bold mb-0" id="displayPartialPrice">R$ --</div>
+                        <small class="text-muted" style="font-size: 0.75rem;">Reserve pagando 50%</small>
+                    </label>
+                </div>
+
+                <div class="col-6">
+                    <label class="btn btn-warning border-0 shadow w-100 p-3 h-100 text-start position-relative payment-option active"
+                           onclick="selectPayment('total')" id="btnTotal">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold opacity-75">TOTAL</span>
+                            <i class="bi bi-check-circle-fill text-dark check-icon"></i>
+                        </div>
+                        <div class="h4 fw-bold mb-0" id="displayTotalPrice">R$ --</div>
+                        <small class="opacity-75" style="font-size: 0.75rem;">Pagamento completo</small>
+                    </label>
+                </div>
+            </div>
+        {% endif %}
+        {% endwith %}
+
+    </div>
+
+    <div class="modal-footer border-0 px-4 pb-4 flex-column">
+        <button type="submit" class="btn btn-brand w-100 btn-lg rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2"
+                style="white-space: nowrap; font-size: clamp(0.9rem, 4vw, 1.1rem);">
+            Confirmar Agendamento <i class="bi bi-arrow-right-short"></i>
+        </button>
+        <small class="text-muted text-center d-block mt-2" style="font-size: 0.75rem;">
+            <i class="bi bi-info-circle me-1"></i>Ambiente de demonstração: pagamentos online via PIX real bloqueados para testes.
+        </small>
+    </div>
+</form>
+        </div>
+    </div>
+</div>
+
+
+<footer class="bg-white mt-5 pt-5 border-top">
+    <div class="container mb-5">
+        <div class="row g-4 mb-5">
+
+            <!-- COLUNA 1: MODALIDADES -->
+            <div class="col-12 col-lg-5">
+                <h5 class="fw-bold text-uppercase mb-4" style="letter-spacing: 1px;">Modalidades</h5>
+                <div class="d-flex justify-content-start flex-wrap gap-3">
+                    {% for mod in modalities %}
+                    <div class="d-flex align-items-center gap-3 p-2 border rounded-4 bg-light shadow-sm" style="min-width: 170px;">
+                        <div class="d-flex align-items-center justify-content-center bg-brand rounded-3 shadow-sm"
+                             style="width: 46px; height: 46px;">
+                            {% if mod.icon %}
+                                <i class="{{ mod.icon }} fs-5" style="color: var(--brand-dark);"></i>
+                            {% else %}
+                                <span class="fs-5">{{ mod.emoji|default:'🏐' }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="fw-bold text-dark">{{ mod.name }}</span>
+                    </div>
+                    {% empty %}
+                        <span class="text-muted small">Nenhuma modalidade cadastrada.</span>
+                    {% endfor %}
+                </div>
+
+                {% if arena.config.about_text %}
+                <div class="mt-4">
+                    <h6 class="fw-bold text-uppercase text-muted small">Sobre a Arena</h6>
+                    <p class="text-secondary small mb-0">{{ arena.config.about_text|linebreaksbr }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- COLUNA 2: HORÁRIOS DE FUNCIONAMENTO -->
+            <div class="col-12 col-md-6 col-lg-4">
+                <h5 class="fw-bold text-uppercase mb-4" style="letter-spacing: 1px;">
+                    <i class="bi bi-clock-history me-1" style="color: var(--brand-color);"></i> Horários de Abertura
+                </h5>
+                <div class="bg-light rounded-4 p-3 border shadow-sm">
+                    <ul class="list-unstyled mb-0 small">
+                        {% for h in all_opening_hours %}
+                        <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
+                            <span class="fw-semibold text-dark">{{ h.get_weekday_display }}</span>
+                            {% if h.is_closed %}
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-2">Fechado</span>
+                            {% else %}
+                                <span class="fw-bold" style="color: var(--brand-color);">{{ h.open_time|time:"H:i" }} às {{ h.close_time|time:"H:i" }}</span>
+                            {% endif %}
+                        </li>
+                        {% empty %}
+                            <li class="text-muted small">Consulte a arena para horários.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- COLUNA 3: CONTATO E LOCALIZAÇÃO -->
+            <div class="col-12 col-md-6 col-lg-3">
+                <h5 class="fw-bold text-uppercase mb-4" style="letter-spacing: 1px;">Contato & Local</h5>
+                <div class="d-flex flex-column gap-3">
+                    {% if arena.config.address %}
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-geo-alt-fill text-danger fs-5 mt-1"></i>
+                        <span class="small text-secondary">{{ arena.config.address }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-3 mt-2">
+                        {% if arena.config.contact_phone %}
+                        <a href="https://wa.me/55{{ arena.config.contact_phone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank"
+                           class="btn btn-outline-success rounded-circle p-2 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 45px; height: 45px;" title="WhatsApp">
+                            <i class="bi bi-whatsapp fs-5"></i>
+                        </a>
+                        {% endif %}
+
+                        {% if arena.config.instagram %}
+                        <a href="https://instagram.com/{{ arena.config.instagram|cut:'@' }}" target="_blank"
+                           class="btn btn-outline-danger rounded-circle p-2 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 45px; height: 45px;" title="Instagram">
+                            <i class="bi bi-instagram fs-5"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- BOTÃO FLUTUANTE DO WHATSAPP -->
+    {% if arena.config.contact_phone %}
+    <a href="https://wa.me/55{{ arena.config.contact_phone|cut:' '|cut:'-'|cut:'('|cut:')' }}"
+       target="_blank" class="whatsapp-float-btn shadow-lg" title="Fale conosco no WhatsApp">
+        <i class="bi bi-whatsapp"></i>
+    </a>
+    {% endif %}
+
+    <div class="text-white text-center py-4 mt-auto" style="background-color: var(--brand-dark);">
+        <p class="mb-0 small opacity-75" style="letter-spacing: 0.5px;">
+            {{ arena.name }} © {% now "Y" %} • Todos os direitos reservados
+        </p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+<script src="https://unpkg.com/imask"></script>
+
+<script>
+    const BOOKINGS_URL = "{% url 'scheduler:my_bookings_ajax' arena_slug=arena.slug %}";
+    const SAVE_PROFILE_URL = "{% url 'scheduler:save_customer_profile_ajax' arena_slug=arena.slug %}";
+    const ARENA_SLUG = "{{ arena.slug }}";
+</script>
+<script src="{% static 'scheduler/js/arena_home.js' %}?v=1.5"></script>
+</body>
+</html>

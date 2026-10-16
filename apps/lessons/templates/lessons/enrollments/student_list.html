@@ -1,0 +1,168 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <!-- Flash message container para operações AJAX -->
+    <div id="ajax-flash-container"></div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 mb-1">Alunos Matriculados</h1>
+            <p class="text-body-secondary small mb-0">Gerencie os alunos ativos e suas respectivas turmas.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'lessons:aulas' arena_slug=arena.slug %}" class="btn btn-action">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <button type="button" class="btn btn-action-primary" onclick="openNewEnrollmentModal();">
+                <i class="bi bi-plus-lg me-1"></i> Nova Matrícula
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="w-100">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Buscar por nome do aluno ou turma..." value="{{ request.GET.q }}">
+                    <button type="submit" class="btn btn-action d-flex align-items-center">
+                        <i class="bi bi-search"></i> <span class="d-none d-sm-inline ms-1">Buscar</span>
+                    </button>
+                    {% if request.GET.q %}
+                        <a href="{% url 'lessons:student_list' arena_slug=arena.slug %}" class="btn btn-action-danger d-flex align-items-center" title="Limpar filtro">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 table-hover">
+                    <thead class="student-thead">
+                        <tr>
+                            <th class="ps-3 d-md-none">Aluno</th>
+                            <th class="ps-4 d-none d-md-table-cell">Aluno</th>
+                            <th class="d-none d-md-table-cell">Turma</th>
+                            <th class="d-none d-md-table-cell">Vencimento</th>
+                            <th class="text-end pe-4 d-none d-md-table-cell">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for matricula in matriculas %}
+                        <tr style="cursor: pointer;" onclick="window.location='{% url 'lessons:student_detail' arena_slug=arena.slug pk=matricula.pk %}'">
+                            <!-- VISÃO MOBILE -->
+                            <td class="d-md-none p-3">
+                                <div class="d-flex align-items-start justify-content-between mb-2">
+                                    <div class="flex-grow-1" style="min-width: 0;">
+                                        <div class="fw-bold text-body fs-6" style="white-space: normal; word-break: break-word;">{{ matricula.customer.name }}</div>
+                                        <div class="mt-1">
+                                            <small class="text-body-secondary d-block mb-1" style="white-space: normal; word-break: break-all;">
+                                                <i class="bi bi-envelope me-1"></i> {{ matricula.customer.email|default:matricula.customer.phone }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex flex-wrap gap-2 mb-1">
+                                    <span class="badge student-badge">
+                                        {{ matricula.class_group.name }}
+                                    </span>
+                                    <span class="badge bg-body-secondary text-body border">
+                                        Vence dia {{ matricula.due_day }}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- VISÃO DESKTOP -->
+                            <td class="ps-4 d-none d-md-table-cell">
+                                <div class="fw-bold text-body">{{ matricula.customer.name }}</div>
+                                <small class="text-body-secondary">{{ matricula.customer.email|default:matricula.customer.phone }}</small>
+                            </td>
+
+                            <td class="d-none d-md-table-cell">
+                                <span class="badge student-badge">
+                                    {{ matricula.class_group.name }}
+                                </span>
+                            </td>
+
+                            <td class="text-body-secondary d-none d-md-table-cell">Dia {{ matricula.due_day }}</td>
+
+                            <td class="text-end pe-4 d-none d-md-table-cell">
+                                <div class="d-inline-flex gap-2">
+                                    <a href="{% url 'lessons:enrollment_update' arena_slug=arena.slug pk=matricula.pk %}" class="btn btn-sm btn-action" title="Editar Matrícula" onclick="event.stopPropagation();">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-action-danger" title="Excluir Matrícula"
+                                            data-id="{{ matricula.pk }}"
+                                            data-student="{{ matricula.customer.name|escape }}"
+                                            data-class="{{ matricula.class_group.name|escape }}"
+                                            data-url="{% url 'lessons:enrollment_delete' arena_slug=arena.slug pk=matricula.pk %}"
+                                            onclick="event.stopPropagation(); openDeleteEnrollmentModal(this);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    {% if matricula.customer.phone %}
+                                    <a href="https://wa.me/55{{ matricula.customer.phone }}" target="_blank" class="btn btn-sm btn-action text-success" style="border-color: rgba(25, 135, 84, 0.35);" title="WhatsApp" onclick="event.stopPropagation();">
+                                        <i class="bi bi-whatsapp"></i>
+                                    </a>
+                                    {% else %}
+                                    <div style="width: 31px;"></div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-body-secondary">
+                                <i class="bi bi-people fs-1 mb-2 d-block opacity-50"></i>
+                                Nenhum aluno encontrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'lessons/modals/_enrollment_modal.html' %}
+
+<style>
+    .student-thead th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 800;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--bs-border-color);
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+    [data-bs-theme="dark"] .student-thead th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-color: #2c323e !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+    .student-badge {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        border: 1px solid var(--bs-border-color);
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 8px;
+    }
+    [data-bs-theme="dark"] .student-badge {
+        background-color: #1e2229 !important;
+        color: #e2e8f0 !important;
+        border-color: #333a48 !important;
+    }
+</style>
+
+{% endblock %}

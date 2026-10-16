@@ -1,0 +1,525 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+
+<!-- Flash message container para operações AJAX -->
+<div id="ajax-flash-container"></div>
+
+<!-- Cabeçalho Principal -->
+<div class="d-flex justify-content-between flex-wrap align-items-center pt-3 pb-3 mb-4 border-bottom gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <a href="{% url 'backoffice:arena_config' arena_slug=arena.slug %}" class="btn btn-sm btn-action rounded-circle d-inline-flex align-items-center justify-content-center p-0" style="width: 32px; height: 32px;" title="Voltar para Configurações">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1 class="h2 mb-0">Horários de Funcionamento</h1>
+        </div>
+        <p class="text-body-secondary small mb-0 ms-md-4 ps-md-2">Defina abertura, fechamento e dias de folga da sua arena.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-action rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" onclick="openReplicateMondayModal();">
+            <i class="bi bi-copy text-body-secondary"></i>
+            <span>Replicar Segunda p/ Semana Toda</span>
+        </button>
+    </div>
+</div>
+
+<!-- ==========================================
+     VISUALIZAÇÃO DESKTOP: TABELA (>= 768px)
+     ========================================== -->
+<div class="card shadow-sm border-0 overflow-hidden d-none d-md-block mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark-header">
+                    <tr>
+                        <th class="ps-4" style="width: 25%;">Dia da Semana</th>
+                        <th style="width: 25%;">Status</th>
+                        <th style="width: 32%;">Horário de Atendimento</th>
+                        <th class="text-end pe-4" style="width: 18%;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in hours %}
+                    <tr>
+                        <td class="ps-4">
+                            <span class="fw-bold text-body fs-6">{{ item.get_weekday_display }}</span>
+                        </td>
+                        <td>
+                            {% if item.is_closed %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill fw-semibold">
+                                    <i class="bi bi-x-circle me-1"></i> Fechado
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-semibold">
+                                    <i class="bi bi-check-circle me-1"></i> Aberto
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.is_closed %}
+                                <span class="text-body-secondary fst-italic">—</span>
+                            {% else %}
+                                <span class="fw-semibold text-body">
+                                    <i class="bi bi-clock text-primary me-1"></i> {{ item.open_time|time:"H:i" }} às {{ item.close_time|time:"H:i" }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <button type="button" class="btn btn-sm btn-action px-3 py-1 fw-semibold"
+                                    data-id="{{ item.id }}"
+                                    data-weekday="{{ item.weekday }}"
+                                    data-weekday-name="{{ item.get_weekday_display }}"
+                                    data-open-time="{{ item.open_time|time:'H:i'|default:'' }}"
+                                    data-close-time="{{ item.close_time|time:'H:i'|default:'' }}"
+                                    data-is-closed="{% if item.is_closed %}true{% else %}false{% endif %}"
+                                    data-url="{% url 'backoffice:opening_hour_edit' arena_slug=arena.slug pk=item.id %}"
+                                    onclick="openEditOpeningHourModal(this);"
+                                    title="Editar horário">
+                                <i class="bi bi-pencil me-1"></i> Editar
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-body-secondary">
+                            <i class="bi bi-calendar-x fs-1 opacity-50 mb-2 d-block"></i>
+                            Nenhum horário configurado no momento.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     VISUALIZAÇÃO MOBILE: CARDS (< 768px)
+     ========================================== -->
+<div class="d-md-none mb-4">
+    <div class="d-flex flex-column gap-3">
+        {% for item in hours %}
+        <div class="card shadow-sm border-0 {% if item.is_closed %}border-start border-4 border-danger{% else %}border-start border-4 border-success{% endif %}">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0 text-body fs-6">{{ item.get_weekday_display }}</h6>
+                    {% if item.is_closed %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-pill small fw-semibold">
+                            Fechado
+                        </span>
+                    {% else %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill small fw-semibold">
+                            Aberto
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <div>
+                        {% if item.is_closed %}
+                            <small class="text-body-secondary fst-italic">Não abre neste dia</small>
+                        {% else %}
+                            <small class="fw-semibold text-body">
+                                <i class="bi bi-clock text-primary me-1"></i> {{ item.open_time|time:"H:i" }} às {{ item.close_time|time:"H:i" }}
+                            </small>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-action px-3 py-1 fw-semibold"
+                            data-id="{{ item.id }}"
+                            data-weekday="{{ item.weekday }}"
+                            data-weekday-name="{{ item.get_weekday_display }}"
+                            data-open-time="{{ item.open_time|time:'H:i'|default:'' }}"
+                            data-close-time="{{ item.close_time|time:'H:i'|default:'' }}"
+                            data-is-closed="{% if item.is_closed %}true{% else %}false{% endif %}"
+                            data-url="{% url 'backoffice:opening_hour_edit' arena_slug=arena.slug pk=item.id %}"
+                            onclick="openEditOpeningHourModal(this);">
+                        <i class="bi bi-pencil me-1"></i> Editar
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5 text-body-secondary">
+            <i class="bi bi-calendar-x fs-1 opacity-50 mb-2 d-block"></i>
+            Nenhum horário configurado no momento.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: EDITAR HORÁRIO (POPUP PADRÃO DO SISTEMA)
+     ======================================================= -->
+<div class="modal fade" id="openingHourModal" tabindex="-1" aria-labelledby="openingHourModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-clock-history fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="openingHourModalTitle">Editar Horário</h5>
+                        <small class="text-body-secondary" id="openingHourModalSubtitle">Defina as horas de funcionamento.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="openingHourForm" method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="weekday" id="id_modal_weekday">
+
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="openingHourFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <!-- Switch: Fechado / Aberto -->
+                    <div class="mb-4 p-3 rounded-3 border bg-body-tertiary">
+                        <div class="form-check form-switch m-0 d-flex align-items-center">
+                            <input class="form-check-input me-3 fs-5" type="checkbox" role="switch" name="is_closed" id="id_modal_is_closed" onchange="toggleModalClosedStatus()">
+                            <div>
+                                <label class="form-check-label fw-bold mb-0 text-body cursor-pointer" for="id_modal_is_closed" id="label_modal_is_closed">
+                                    Dia Aberto para Reservas
+                                </label>
+                                <small class="text-body-secondary d-block mt-1" id="hint_modal_is_closed">
+                                    Marque caso a arena não funcione neste dia.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Horários (Abertura e Fechamento) -->
+                    <div id="timesContainer" class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_modal_open_time">
+                                Abertura <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary"><i class="bi bi-sun text-warning"></i></span>
+                                <input type="time" name="open_time" id="id_modal_open_time" class="form-control" required>
+                            </div>
+                            <div class="invalid-feedback small" id="err-open_time"></div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold small mb-1" for="id_modal_close_time">
+                                Fechamento <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary"><i class="bi bi-moon-stars text-info"></i></span>
+                                <input type="time" name="close_time" id="id_modal_close_time" class="form-control" required>
+                            </div>
+                            <div class="form-text small" style="font-size: 0.75rem;">Para fechar na madrugada, ex: 02:00</div>
+                            <div class="invalid-feedback small" id="err-close_time"></div>
+                        </div>
+                    </div>
+
+                    <!-- Aviso de Fechado -->
+                    <div id="closedNotice" class="alert alert-secondary d-none text-center py-3 mb-0 small">
+                        <i class="bi bi-moon-fill me-1 text-warning"></i> A arena estará marcada como <strong>fechada</strong> neste dia. Não serão permitidos agendamentos pelo site.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4 fw-bold" id="btnSubmitOpeningHour">
+                        <span class="btn-text">Salvar Horário</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAR REPLICAÇÃO DA SEGUNDA-FEIRA
+     ======================================================= -->
+<div class="modal fade" id="replicateMondayModal" tabindex="-1" aria-labelledby="replicateMondayModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="modal-icon-badge mx-auto mb-3" style="width: 56px; height: 56px; border-radius: 50%;">
+                    <i class="bi bi-copy fs-2 text-warning"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="replicateMondayModalTitle">Replicar Segunda-feira?</h4>
+                <p class="lead mb-2 fs-6">
+                    Deseja copiar o horário de <strong>Segunda-feira</strong> para todos os outros dias da semana (<strong>Terça a Domingo</strong>)?
+                </p>
+                <p class="text-body-secondary small mb-4">
+                    Os horários atuais configurados para os demais dias serão substituídos pelo horário da segunda-feira.
+                </p>
+
+                <form id="replicateMondayForm" method="post" action="{% url 'backoffice:opening_hours_replicate_monday' arena_slug=arena.slug %}">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-primary fw-bold px-4" id="btnConfirmReplicateMonday">
+                            <i class="bi bi-copy me-1"></i> Sim, Replicar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let openingHourModalInstance = null;
+    let replicateModalInstance = null;
+
+    function getOpeningHourModal() {
+        const el = document.getElementById('openingHourModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getReplicateModal() {
+        const el = document.getElementById('replicateMondayModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function clearFormErrors() {
+        const alertBox = document.getElementById('openingHourFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+        const inputs = document.querySelectorAll('#openingHourForm .form-control');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+
+        const feedbacks = document.querySelectorAll('#openingHourForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    function toggleModalClosedStatus() {
+        const isClosed = document.getElementById('id_modal_is_closed').checked;
+        const label = document.getElementById('label_modal_is_closed');
+        const hint = document.getElementById('hint_modal_is_closed');
+        const timesContainer = document.getElementById('timesContainer');
+        const closedNotice = document.getElementById('closedNotice');
+        const openInput = document.getElementById('id_modal_open_time');
+        const closeInput = document.getElementById('id_modal_close_time');
+
+        if (isClosed) {
+            label.textContent = "Dia Fechado (Sem funcionamento)";
+            label.className = "form-check-label fw-bold mb-0 text-danger cursor-pointer";
+            hint.textContent = "Desmarque para reabrir este dia e definir horários.";
+            timesContainer.classList.add('d-none');
+            closedNotice.classList.remove('d-none');
+            openInput.removeAttribute('required');
+            closeInput.removeAttribute('required');
+        } else {
+            label.textContent = "Dia Aberto para Reservas";
+            label.className = "form-check-label fw-bold mb-0 text-success cursor-pointer";
+            hint.textContent = "Marque caso a arena não funcione neste dia.";
+            timesContainer.classList.remove('d-none');
+            closedNotice.classList.add('d-none');
+            openInput.setAttribute('required', 'required');
+            closeInput.setAttribute('required', 'required');
+            if (!openInput.value) openInput.value = "07:00";
+            if (!closeInput.value) closeInput.value = "23:00";
+        }
+    }
+
+    function openEditOpeningHourModal(btn) {
+        if (!btn) return;
+        const form = document.getElementById('openingHourForm');
+        if (!form) return;
+
+        clearFormErrors();
+
+        const url = btn.getAttribute('data-url') || '';
+        const weekday = btn.getAttribute('data-weekday') || '';
+        const weekdayName = btn.getAttribute('data-weekday-name') || '';
+        const openTime = btn.getAttribute('data-open-time') || '';
+        const closeTime = btn.getAttribute('data-close-time') || '';
+        const isClosed = btn.getAttribute('data-is-closed') === 'true';
+
+        form.action = url;
+        document.getElementById('id_modal_weekday').value = weekday;
+        document.getElementById('id_modal_open_time').value = openTime || '07:00';
+        document.getElementById('id_modal_close_time').value = closeTime || '23:00';
+        document.getElementById('id_modal_is_closed').checked = isClosed;
+
+        document.getElementById('openingHourModalTitle').textContent = `Editar Horário`;
+        document.getElementById('openingHourModalSubtitle').textContent = `Configurações para ${weekdayName}`;
+
+        toggleModalClosedStatus();
+
+        const modal = getOpeningHourModal();
+        if (modal) modal.show();
+    }
+
+    function openReplicateMondayModal() {
+        const modal = getReplicateModal();
+        if (modal) modal.show();
+    }
+
+    // Inicialização da página e checagem de mensagens de feedback
+    function initOpeningHours() {
+        const savedFlash = sessionStorage.getItem('hours_flash_msg');
+        if (savedFlash) {
+            sessionStorage.removeItem('hours_flash_msg');
+            const flashContainer = document.getElementById('ajax-flash-container');
+            if (flashContainer) {
+                flashContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> ${savedFlash}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", initOpeningHours);
+    document.addEventListener("turbo:render", initOpeningHours);
+
+    // Submissão AJAX do formulário de edição de horário
+    document.addEventListener("submit", async function(e) {
+        // 1. Edição de horário
+        if (e.target && e.target.id === 'openingHourForm') {
+            e.preventDefault();
+            const form = e.target;
+            clearFormErrors();
+
+            const submitBtn = document.getElementById('btnSubmitOpeningHour');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getOpeningHourModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('hours_flash_msg', data.message || 'Horário atualizado com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('openingHourFormAlert');
+                    alertBox.classList.remove('d-none');
+
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.querySelector(`[name="${field}"]`);
+                            const feedback = document.getElementById(`err-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Ocorreu um erro ao salvar o horário. Verifique os campos.');
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                const alertBox = document.getElementById('openingHourFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // 2. Replicar Segunda-feira
+        if (e.target && e.target.id === 'replicateMondayForm') {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('btnConfirmReplicateMonday');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Replicando...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getReplicateModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('hours_flash_msg', data.message || 'Horários replicados com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Erro ao replicar horários.');
+                }
+            } catch (err) {
+                console.error('Erro ao replicar:', err);
+                alert('Erro na conexão ao replicar os horários.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    });
+</script>
+
+<style>
+    .table-dark-header th {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-weight: 600;
+        border-bottom: 2px solid var(--bs-border-color);
+        padding-top: 0.85rem;
+        padding-bottom: 0.85rem;
+    }
+    [data-bs-theme="dark"] .table-dark-header th {
+        background-color: #1a1e27 !important;
+        color: #f8fafc !important;
+        border-color: #2c323e !important;
+        border-bottom: 2px solid #333a48 !important;
+    }
+
+    .modal-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background-color: rgba(255, 193, 7, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    [data-bs-theme="dark"] .modal-content {
+        background-color: #1a1d22 !important;
+        border: 1px solid #2d3340 !important;
+    }
+    [data-bs-theme="dark"] .modal-header,
+    [data-bs-theme="dark"] .modal-footer {
+        border-color: #2d3340 !important;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,562 @@
+/* Variáveis de Cores */
+:root {
+    --primary-gold: #D4AF37;
+    --primary-gold-hover: #b59020;
+    --dark-bg: #121212;
+    --card-bg: #1e1e1e;
+    --text-light: #f4f4f4;
+    --text-gray: #a0a0a0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--dark-bg);
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1250px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.text-gold {
+    color: var(--primary-gold);
+}
+
+/* --- Navbar Desktop (Padrão) --- */
+.navbar {
+    background: rgba(18, 18, 18, 0.95);
+    padding: 1rem 0;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 1px solid #333;
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between; /* Logo na Esquerda, Menu/Toggle na Direita */
+    align-items: center;
+    position: relative; /* Importante para o posicionamento */
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    z-index: 2001; /* Garante que a logo fique acima do menu aberto */
+}
+
+/* Links no Desktop */
+.nav-links {
+    display: flex;
+    list-style: none;
+    margin-left: auto; /* Empurra o menu para a direita */
+    z-index: 2001;
+}
+
+.nav-links li {
+    margin-left: 25px;
+}
+
+.nav-links a {
+    color: var(--text-light);
+    text-decoration: none;
+    transition: 0.3s;
+    font-weight: 500;
+}
+
+.nav-links a:hover {
+    color: var(--primary-gold);
+}
+
+/* Btn login */
+.btn-login-nav {
+    background-color: var(--primary-gold);
+    color: #000 !important; /* Texto preto para contraste */
+    padding: 8px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-login-nav:hover {
+    background-color: #fff; /* Fica branco ao passar o mouse */
+    transform: scale(1.05);
+}
+
+/* Estilo do Botão Hambúrguer (Geral) */
+.menu-toggle {
+    display: none; /* Escondido no Desktop */
+    cursor: pointer;
+}
+
+.bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    margin: 5px auto;
+    transition: all 0.3s ease-in-out;
+    background-color: var(--text-light); /* Branco */
+}
+
+
+/* Hero Section */
+.hero {
+    height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=1920&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    margin-top: 60px;
+}
+
+.hero h2 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    color: var(--text-gray);
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Botões */
+.btn {
+    display: inline-block;
+    padding: 12px 30px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.3s;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.btn-primary {
+    background-color: var(--primary-gold);
+    color: var(--dark-bg);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-gold-hover);
+}
+
+.btn-outline {
+    border: 2px solid var(--primary-gold);
+    color: var(--primary-gold);
+    background: transparent;
+    margin-left: 10px;
+}
+
+.btn-outline:hover {
+    background: var(--primary-gold);
+    color: var(--dark-bg);
+}
+
+/* --- Seção de Segurança e Contadores --- */
+.security {
+    background-color: #151515; /* Um tom ligeiramente diferente para destaque */
+}
+
+.security-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+}
+
+.security-card {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s, border-color 0.3s;
+    /* Efeito sutil de linhas de fundo */
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 20%);
+}
+
+.security-card:hover {
+    border-color: var(--primary-gold);
+    transform: translateY(-5px);
+}
+
+/* Ícone pequeno no canto */
+.card-icon {
+    display: inline-block;
+    padding: 12px;
+    background: rgba(212, 175, 55, 0.1);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.card-icon i {
+    font-size: 1.5rem;
+    color: var(--primary-gold);
+}
+
+/* Wrapper para o número e símbolo ficarem juntos */
+.counter-wrapper {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--primary-gold);
+    line-height: 1.2;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: baseline;
+}
+
+.counter-wrapper h3 {
+     font-size: 2.5rem;
+     color: var(--primary-gold);
+     margin-bottom: 10px;
+}
+
+.symbol {
+    font-size: 2rem;
+    margin-left: 5px;
+}
+
+.security-card p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+/* Ajuste responsivo */
+@media (max-width: 768px) {
+    .counter-wrapper {
+        font-size: 2.5rem;
+    }
+    .symbol {
+        font-size: 1.8rem;
+    }
+}
+
+/* Seções Gerais */
+section {
+    padding: 80px 0;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 60px;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: var(--primary-gold);
+    margin: 10px auto 0;
+}
+
+/* Features */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.feature-card {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #333;
+    transition: 0.3s;
+}
+
+.feature-card:hover {
+    border-color: var(--primary-gold);
+    transform: translateY(-5px);
+}
+
+.icon-gold {
+    font-size: 3rem;
+    color: var(--primary-gold);
+    margin-bottom: 20px;
+}
+
+/* --- Seção Tour do Sistema --- */
+.system-tour {
+    background-color: var(--dark-bg);
+}
+
+.tour-container {
+    display: flex;
+    gap: 50px;
+    align-items: center;
+}
+
+/* Menu Lateral */
+.tour-menu {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.tour-btn {
+    background: transparent;
+    border: 1px solid #333;
+    padding: 20px;
+    text-align: left;
+    color: var(--text-gray);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.tour-btn i {
+    margin-right: 15px;
+    font-size: 0.9rem;
+    color: var(--primary-gold); /* Checkmark dourado */
+}
+
+.tour-btn:hover {
+    border-color: var(--primary-gold);
+    color: var(--text-light);
+}
+
+/* Estado Ativo (Botão Selecionado) */
+.tour-btn.active {
+    background: var(--primary-gold);
+    color: var(--dark-bg); /* Texto escuro para contraste */
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+    transform: translateX(10px); /* Leve deslocamento para direita */
+}
+
+.tour-btn.active i {
+    color: var(--dark-bg); /* Checkmark escuro no fundo dourado */
+}
+
+/* Conteúdo (Direita) */
+.tour-content {
+    flex: 1.5;
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: 15px;
+    border: 1px solid #333;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    min-height: 400px; /* Evita que a altura pule na troca */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.content-text h3 {
+    font-size: 2rem;
+    color: var(--primary-gold);
+    margin-bottom: 20px;
+}
+
+.content-text p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    margin-bottom: 30px;
+    line-height: 1.8;
+}
+
+.content-image img {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    border: 1px solid #333;
+    transition: opacity 0.4s ease;
+}
+
+/* Animação de Fade ao trocar */
+.fade-anim {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsivo */
+@media (max-width: 900px) {
+    .tour-container {
+        flex-direction: column;
+    }
+
+    .tour-btn.active {
+        transform: translateX(0);
+    }
+}
+
+
+/* Pricing */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    align-items: center; /* Alinha verticalmente */
+}
+
+.price-card {
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #333;
+    position: relative;
+}
+
+.price-card.popular {
+    border: 2px solid var(--primary-gold);
+    transform: scale(1.05);
+    z-index: 10;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+.badge {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary-gold);
+    color: var(--dark-bg);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.price {
+    font-size: 2.5rem;
+    color: var(--primary-gold);
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+.price .month {
+    font-size: 1rem;
+    color: var(--text-gray);
+    font-weight: normal;
+}
+
+.features-list {
+    list-style: none;
+    margin-bottom: 30px;
+    text-align: left;
+}
+
+.features-list li {
+    margin-bottom: 10px;
+    color: var(--text-light);
+}
+
+.features-list li i {
+    color: var(--primary-gold);
+    margin-right: 10px;
+    width: 20px;
+}
+
+.features-list li.disabled {
+    color: #555;
+    text-decoration: line-through;
+}
+
+.features-list li.disabled i {
+    color: #555;
+}
+
+/* Contato */
+.contact-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.contact-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.contact-form input, .contact-form select {
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #333;
+    background: var(--card-bg);
+    color: var(--text-light);
+    outline: none;
+}
+
+.contact-form input:focus {
+    border-color: var(--primary-gold);
+}
+
+.social-links {
+    margin-top: 40px;
+    text-align: center;
+}
+
+.social-links .icons a {
+    color: var(--text-light);
+    font-size: 2rem;
+    margin: 0 15px;
+    transition: 0.3s;
+}
+
+.social-links .icons a:hover {
+    color: var(--primary-gold);
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    border-top: 1px solid #333;
+    margin-top: 50px;
+    font-size: 0.9rem;
+    color: var(--text-gray);
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none; /* Simplificação para mobile */
+    }
+
+    .hero h2 {
+        font-size: 2rem;
+    }
+
+    .price-card.popular {
+        transform: scale(1);
+    }
+}

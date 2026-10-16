@@ -1,0 +1,76 @@
+{% extends 'saas/base_saas.html' %}
+
+{% block title %}Mensalidade / Cobrança | SaaS Master{% endblock %}
+
+{% block content %}
+<div class="container py-2" style="max-width: 600px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="{% url 'saas:subscription_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> Cancelar e Voltar
+        </a>
+    </div>
+
+    <div class="glass-card p-4 p-md-5">
+        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+            <div class="rounded-3 p-3 bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-receipt fs-4"></i>
+            </div>
+            <div>
+                <h1 class="h4 fw-bold text-white mb-1">
+                    {% if form.instance.pk %}Editar Mensalidade{% else %}Nova Cobrança Avulsa{% endif %}
+                </h1>
+                <p class="text-secondary small mb-0">Registre uma fatura de assinatura para a arena informada.</p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label small fw-bold text-secondary">Arena</label>
+                    {{ form.arena }}
+                    {% if form.arena.errors %}<div class="text-danger small">{{ form.arena.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Data de Vencimento</label>
+                    {{ form.due_date }}
+                    {% if form.due_date.errors %}<div class="text-danger small">{{ form.due_date.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Valor (R$)</label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}<div class="text-danger small">{{ form.amount.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Status do Pagamento</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Data de Pagamento (Se pago)</label>
+                    {{ form.payment_date }}
+                    {% if form.payment_date.errors %}<div class="text-danger small">{{ form.payment_date.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label small fw-bold text-secondary">Observações</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-25">
+                    <a href="{% url 'saas:subscription_list' %}" class="btn btn-outline-secondary px-4 rounded-pill">Cancelar</a>
+                    <button type="submit" class="btn btn-warning px-4 rounded-pill text-dark fw-bold">
+                        <i class="bi bi-check-lg me-1"></i> Salvar Fatura
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

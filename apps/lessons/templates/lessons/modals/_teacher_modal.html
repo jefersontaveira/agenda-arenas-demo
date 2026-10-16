@@ -1,0 +1,366 @@
+<!-- =======================================================
+     MODAL ELEGANTE: CADASTRAR / EDITAR PROFESSOR
+     ======================================================= -->
+<div class="modal fade" id="teacherModal" tabindex="-1" aria-labelledby="teacherModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <div class="modal-icon-badge me-3">
+                        <i class="bi bi-person-badge fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="teacherModalTitle">Novo Professor</h5>
+                        <small class="text-body-secondary" id="teacherModalSubtitle">Cadastre um profissional de ensino para a sua arena.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <form id="teacherForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Alerta de Erros do Form -->
+                    <div id="teacherFormAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
+
+                    <div class="row g-3">
+                        <!-- Nome Completo -->
+                        <div class="col-12 col-md-8">
+                            <label class="form-label fw-bold small mb-1" for="id_teacher_name">
+                                Nome Completo <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="id_teacher_name" class="form-control" placeholder="Ex: Carlos Silva" required>
+                            <div class="invalid-feedback small" id="err-teacher-name"></div>
+                        </div>
+
+                        <!-- Cor na Agenda -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold small mb-1" for="id_teacher_color">
+                                Cor na Agenda
+                            </label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="color" name="color" id="id_teacher_color" class="form-control form-control-color" value="#0d6efd" title="Escolha a cor do professor" style="width: 48px; height: 38px;">
+                                <small class="text-body-secondary">Cor das aulas na grade</small>
+                            </div>
+                            <div class="invalid-feedback small" id="err-teacher-color"></div>
+                        </div>
+
+                        <!-- WhatsApp / Telefone -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_teacher_phone">
+                                WhatsApp / Telefone <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body-tertiary"><i class="bi bi-whatsapp text-success"></i></span>
+                                <input type="text" name="phone" id="id_teacher_phone" class="form-control" placeholder="(00) 00000-0000" maxlength="15" required>
+                            </div>
+                            <div class="invalid-feedback small" id="err-teacher-phone"></div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold small mb-1" for="id_teacher_email">
+                                E-mail <small class="text-body-secondary fw-normal">(opcional)</small>
+                            </label>
+                            <input type="email" name="email" id="id_teacher_email" class="form-control" placeholder="professor@email.com">
+                            <div class="invalid-feedback small" id="err-teacher-email"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4 bg-body-tertiary">
+                    <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-action-primary px-4" id="btnSubmitTeacher">
+                        <span class="btn-text">Salvar Professor</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =======================================================
+     MODAL ELEGANTE: CONFIRMAÇÃO DE EXCLUSÃO DE PROFESSOR
+     ======================================================= -->
+<div class="modal fade" id="deleteTeacherModal" tabindex="-1" aria-labelledby="deleteTeacherModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0 pt-3 pe-3">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4 pt-0">
+                <div class="delete-icon-circle mx-auto mb-3">
+                    <i class="bi bi-trash3-fill fs-2 text-danger"></i>
+                </div>
+                <h4 class="fw-bold mb-2" id="deleteTeacherModalTitle">Excluir Professor</h4>
+                <p class="lead mb-2 fs-6">
+                    Tem certeza que deseja excluir o professor <strong id="deleteTeacherNameText" class="text-body"></strong>?
+                </p>
+                <p class="text-body-secondary small mb-4">
+                    As turmas vinculadas a ele ficarão marcadas como "Sem Professor". Esta ação não pode ser desfeita.
+                </p>
+
+                <form id="deleteTeacherForm" method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-action" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-action-danger px-4" id="btnConfirmDeleteTeacher">
+                            <i class="bi bi-trash me-1"></i> Sim, Excluir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const URL_TEACHER_CREATE = "{% url 'lessons:teacher_create' arena_slug=arena.slug %}";
+
+    function getTeacherModal() {
+        const el = document.getElementById('teacherModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function getDeleteTeacherModal() {
+        const el = document.getElementById('deleteTeacherModal');
+        return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+    }
+
+    function formatTeacherPhone(value) {
+        if (!value) return '';
+        const digits = value.replace(/\D/g, '');
+        if (digits.length <= 10) {
+            return digits.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').trim();
+        }
+        return digits.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').trim();
+    }
+
+    function clearTeacherFormErrors() {
+        const alertBox = document.getElementById('teacherFormAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+            alertBox.innerHTML = '';
+        }
+        const inputs = document.querySelectorAll('#teacherForm .form-control');
+        inputs.forEach(inp => inp.classList.remove('is-invalid'));
+        const feedbacks = document.querySelectorAll('#teacherForm .invalid-feedback');
+        feedbacks.forEach(fb => fb.textContent = '');
+    }
+
+    function openNewTeacherModal() {
+        const form = document.getElementById('teacherForm');
+        if (!form) return;
+        form.reset();
+        form.action = URL_TEACHER_CREATE;
+
+        document.getElementById('teacherModalTitle').textContent = "Novo Professor";
+        document.getElementById('teacherModalSubtitle').textContent = "Cadastre um profissional de ensino para a sua arena.";
+        document.getElementById('btnSubmitTeacher').querySelector('.btn-text').textContent = "Cadastrar Professor";
+        document.getElementById('id_teacher_color').value = "#0d6efd";
+
+        clearTeacherFormErrors();
+        const modal = getTeacherModal();
+        if (modal) modal.show();
+    }
+
+    function openEditTeacherModal(btn) {
+        const form = document.getElementById('teacherForm');
+        if (!form || !btn) return;
+        form.reset();
+        clearTeacherFormErrors();
+
+        const name = btn.getAttribute('data-name') || '';
+        const phone = btn.getAttribute('data-phone') || '';
+        const email = btn.getAttribute('data-email') || '';
+        const color = btn.getAttribute('data-color') || '#0d6efd';
+        const url = btn.getAttribute('data-url') || '';
+
+        form.action = url;
+
+        document.getElementById('id_teacher_name').value = name;
+        document.getElementById('id_teacher_phone').value = formatTeacherPhone(phone);
+        document.getElementById('id_teacher_email').value = email;
+        document.getElementById('id_teacher_color').value = color;
+
+        document.getElementById('teacherModalTitle').textContent = "Editar Professor";
+        document.getElementById('teacherModalSubtitle').textContent = `Editando dados de ${name}`;
+        document.getElementById('btnSubmitTeacher').querySelector('.btn-text').textContent = "Salvar Alterações";
+
+        const modal = getTeacherModal();
+        if (modal) modal.show();
+    }
+
+    function openDeleteTeacherModal(btn) {
+        const form = document.getElementById('deleteTeacherForm');
+        if (!form || !btn) return;
+
+        const name = btn.getAttribute('data-name') || '';
+        const url = btn.getAttribute('data-url') || '';
+        form.action = url;
+
+        document.getElementById('deleteTeacherNameText').textContent = name;
+        const modal = getDeleteTeacherModal();
+        if (modal) modal.show();
+    }
+
+    function initTeacherFlashMessages() {
+        const savedFlash = sessionStorage.getItem('teacher_flash_msg');
+        if (savedFlash) {
+            sessionStorage.removeItem('teacher_flash_msg');
+            const flashContainer = document.getElementById('ajax-flash-container');
+            if (flashContainer) {
+                flashContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> ${savedFlash}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initTeacherFlashMessages();
+
+        const phoneInput = document.getElementById('id_teacher_phone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                e.target.value = formatTeacherPhone(e.target.value);
+            });
+        }
+    });
+
+    document.addEventListener("submit", async function(e) {
+        // Form Professor (Criar / Editar)
+        if (e.target && e.target.id === 'teacherForm') {
+            e.preventDefault();
+            const form = e.target;
+            clearTeacherFormErrors();
+
+            const submitBtn = document.getElementById('btnSubmitTeacher');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getTeacherModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('teacher_flash_msg', data.message || 'Professor salvo com sucesso!');
+                    window.location.reload();
+                } else {
+                    const alertBox = document.getElementById('teacherFormAlert');
+                    alertBox.classList.remove('d-none');
+                    let errorMessages = [];
+                    if (data.errors) {
+                        for (const [field, errList] of Object.entries(data.errors)) {
+                            const input = document.getElementById(`id_teacher_${field}`);
+                            const feedback = document.getElementById(`err-teacher-${field}`);
+                            if (input) input.classList.add('is-invalid');
+                            if (feedback) feedback.textContent = Array.isArray(errList) ? errList.join(' ') : errList;
+                            errorMessages.push(Array.isArray(errList) ? errList.join(' ') : errList);
+                        }
+                    }
+                    alertBox.innerHTML = errorMessages.length > 0 ? errorMessages.join('<br>') : (data.message || 'Verifique os campos informados.');
+                }
+            } catch (err) {
+                console.error('Erro:', err);
+                const alertBox = document.getElementById('teacherFormAlert');
+                alertBox.classList.remove('d-none');
+                alertBox.textContent = 'Erro ao processar requisição. Tente novamente.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // Form Excluir Professor
+        if (e.target && e.target.id === 'deleteTeacherForm') {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('btnConfirmDeleteTeacher');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Excluindo...';
+
+            try {
+                const formData = new FormData(form);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const modal = getDeleteTeacherModal();
+                    if (modal) modal.hide();
+                    sessionStorage.setItem('teacher_flash_msg', data.message || 'Professor excluído com sucesso!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Não foi possível excluir o professor.');
+                }
+            } catch (err) {
+                console.error('Erro:', err);
+                alert('Erro ao excluir o professor. Tente novamente.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+    });
+</script>
+
+<style>
+    .modal-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background-color: rgba(255, 193, 7, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .delete-icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: rgba(220, 53, 69, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    [data-bs-theme="dark"] .modal-content {
+        background-color: #1a1d22 !important;
+        border: 1px solid #2d3340 !important;
+    }
+    [data-bs-theme="dark"] .modal-header,
+    [data-bs-theme="dark"] .modal-footer {
+        border-color: #2d3340 !important;
+    }
+</style>

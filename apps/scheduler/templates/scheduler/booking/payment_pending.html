@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento PIX • {{ booking.arena.name }}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --brand-color: {{ booking.arena.config.primary_color|default:"#FFC107" }};
+            --brand-dark: {{ booking.arena.config.secondary_color|default:"#111315" }};
+            --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --success-color: #10b981;
+            --card-bg: #ffffff;
+            --page-bg: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--page-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 12px;
+            background-image: radial-gradient(circle at top right, rgba(255, 193, 7, 0.08), transparent 400px),
+                              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.06), transparent 400px);
+        }
+
+        .payment-container {
+            max-width: 520px;
+            width: 100%;
+            margin: auto;
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        /* Top Brand Header */
+        .brand-header {
+            background: linear-gradient(135deg, var(--brand-dark) 0%, #1e293b 100%);
+            color: #ffffff;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+        }
+
+        .brand-logo {
+            max-height: 52px;
+            max-width: 180px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.25));
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            letter-spacing: 0.3px;
+        }
+
+        /* Timer de Expiração */
+        .timer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fffbeb;
+            border: 1.5px solid #fde68a;
+            color: #92400e;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            margin-top: -18px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+            position: relative;
+            z-index: 2;
+        }
+
+        .timer-badge.expiring-soon {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+            animation: pulse-danger 1s infinite alternate;
+        }
+
+        @keyframes pulse-danger {
+            from { transform: scale(1); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+            to { transform: scale(1.03); box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35); }
+        }
+
+        /* Amount Display */
+        .amount-card {
+            background: #f8fafc;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 18px;
+            padding: 16px 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .amount-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--success-color);
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        /* QR Code Container */
+        .qr-wrapper {
+            background: #ffffff;
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 16px;
+            display: inline-block;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        .qr-image {
+            width: 220px;
+            height: 220px;
+            object-fit: contain;
+            display: block;
+            border-radius: 12px;
+        }
+
+        /* Copiar Código Button */
+        .btn-copy-pix {
+            background-color: var(--brand-color, #FFC107);
+            color: #111315;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 14px 24px;
+            border-radius: 14px;
+            border: none;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .btn-copy-pix:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+            filter: brightness(1.04);
+            color: #000;
+        }
+
+        .btn-copy-pix:active {
+            transform: translateY(0);
+        }
+
+        .btn-copy-pix.copied {
+            background-color: var(--success-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* Live status radar */
+        .live-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 8px 16px;
+            background: #f1f5f9;
+            border-radius: 999px;
+        }
+
+        .live-dot {
+            width: 9px;
+            height: 9px;
+            background-color: var(--success-color);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .live-dot::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+            opacity: 0.5;
+            animation: pulse-ring 1.6s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.6); opacity: 0.8; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
+        /* Steps */
+        .step-pill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            font-size: 0.82rem;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            text-align: left;
+        }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #e2e8f0;
+            color: #475569;
+            font-weight: 700;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Success Overlay */
+        .success-overlay {
+            position: absolute;
+            inset: 0;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            z-index: 20;
+            border-radius: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .check-anim-circle {
+            width: 80px;
+            height: 80px;
+            background: #d1fae5;
+            color: var(--success-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 18px;
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="payment-container">
+    <div class="main-card position-relative">
+
+        <!-- Overlay de Sucesso (Oculto até confirmação) -->
+        <div id="successOverlay" class="success-overlay d-none text-center">
+            <div class="check-anim-circle">
+                <i class="bi bi-check-lg"></i>
+            </div>
+            <h3 class="fw-bold text-dark mb-2">Pagamento Confirmado!</h3>
+            <p class="text-muted mb-4">Sua reserva foi garantida com sucesso. Redirecionando para o comprovante...</p>
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+
+        <!-- Header da Arena -->
+        <div class="brand-header">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <a href="{% url 'scheduler:arena_home' arena_slug=booking.arena.slug %}" class="btn btn-sm btn-link text-white text-decoration-none p-0 opacity-75 hover-opacity-100">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar
+                </a>
+                <span class="brand-badge">
+                    <i class="bi bi-shield-check text-warning"></i> Pagamento Seguro
+                </span>
+            </div>
+
+            {% if booking.arena.config.logo %}
+                <img src="{{ booking.arena.config.logo.url }}" alt="{{ booking.arena.name }}" class="brand-logo mb-2">
+            {% else %}
+                <h4 class="fw-bold mb-1 text-white">{{ booking.arena.name }}</h4>
+            {% endif %}
+            <p class="small text-white-50 mb-0">Reserva de Quadra • Pagamento via PIX</p>
+        </div>
+
+        <!-- Corpo Principal -->
+        <div class="px-4 pb-4 pt-2 text-center position-relative">
+
+            <!-- Timer Regressivo de 15 minutos -->
+            <div class="d-flex justify-content-center">
+                <div class="timer-badge" id="timerBadge">
+                    <i class="bi bi-stopwatch-fill fs-6"></i>
+                    <span>Pague em até <strong id="timerDisplay">15:00</strong></span>
+                </div>
+            </div>
+
+            <!-- Resumo da Reserva -->
+            <div class="mt-4 p-3 bg-light rounded-4 text-start border">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge px-2.5 py-1 text-uppercase fw-bold" style="background-color: {{ booking.court.color|default:'#FFC107' }}; color: #111;">
+                        <i class="bi bi-grid-fill me-1"></i> {{ booking.court.name }}
+                    </span>
+                    {% if booking.payment_status == 'PARTIAL' %}
+                        <span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning border-opacity-50">Sinal (50%)</span>
+                    {% else %}
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Pagamento Total</span>
+                    {% endif %}
+                </div>
+
+                <div class="fw-bold text-dark fs-6 mb-1">
+                    <i class="bi bi-calendar-event me-1.5 text-muted"></i>
+                    {{ booking.start_time|date:"d \d\e F" }} • {{ booking.start_time|date:"H:i" }} às {{ booking.end_time|date:"H:i" }}
+                </div>
+                <div class="small text-muted">
+                    <i class="bi bi-person me-1.5"></i> Cliente: <strong>{{ booking.customer.name }}</strong>
+                </div>
+            </div>
+
+            <!-- Valor a Pagar -->
+            <div class="amount-card">
+                <small class="text-uppercase fw-bold text-muted d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Valor a pagar</small>
+                <div class="amount-value">
+                    R$ {{ pix_data.amount|floatformat:2 }}
+                </div>
+                {% if booking.payment_status == 'PARTIAL' %}
+                    <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">
+                        Valor total: R$ {{ booking.price|floatformat:2 }} (Restante no local)
+                    </small>
+                {% endif %}
+            </div>
+
+            <!-- QR Code PIX -->
+            <div class="my-3">
+                {% if pix_data.qr_code_base64 %}
+                    <div class="qr-wrapper">
+                        <img src="data:image/jpeg;base64,{{ pix_data.qr_code_base64 }}"
+                             alt="QR Code Pix" class="qr-image">
+                    </div>
+                    <div class="small text-muted mt-2">
+                        <i class="bi bi-camera me-1"></i> Aponte a câmera do seu banco para o QR Code
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning py-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Não foi possível carregar a imagem do QR Code. Utilize o código Copia e Cola abaixo.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Botão Copiar Código PIX -->
+            <div class="my-3">
+                <button type="button" class="btn-copy-pix" id="btnCopyPix" onclick="copiarPix()">
+                    <i class="bi bi-clipboard2-check fs-5" id="copyIcon"></i>
+                    <span id="copyText">Copiar Código PIX</span>
+                </button>
+
+                <!-- Input Oculto para Cópia Garantida -->
+                <input type="text" class="visually-hidden" id="pixCodeInput" value="{{ pix_data.qr_code }}" readonly>
+            </div>
+
+            <!-- Radar de Status em Tempo Real -->
+            <div class="my-4">
+                <div class="live-status">
+                    <span class="live-dot"></span>
+                    <span>Aguardando confirmação do pagamento...</span>
+                </div>
+                <small class="d-block text-muted mt-1.5" style="font-size: 0.75rem;">
+                    Assim que pagar, a tela será atualizada automaticamente.
+                </small>
+            </div>
+
+            <!-- Passo a Passo -->
+            <div class="mt-4 pt-3 border-top">
+                <div class="step-pill">
+                    <span class="step-num">1</span>
+                    <span>Abra o aplicativo do seu banco ou carteira digital</span>
+                </div>
+                <div class="step-pill">
+                    <span class="step-num">2</span>
+                    <span>Escolha a opção <strong>PIX > Pagar com QR Code ou Copia e Cola</strong></span>
+                </div>
+                <div class="step-pill">
+                    <span class="step-num">3</span>
+                    <span>Cole o código copiado ou aponte a câmera para confirmar</span>
+                </div>
+            </div>
+
+            <!-- Suporte WhatsApp -->
+            {% if booking.arena.config.contact_phone %}
+            <div class="mt-3">
+                <a href="https://wa.me/55{{ booking.arena.config.contact_phone|cut:' '|cut:'-'|cut:'('|cut:')' }}?text=Ol%C3%A1!%20Estou%20na%20tela%20de%20pagamento%20da%20reserva%20%23{{ booking.id }}"
+                   target="_blank" class="small text-decoration-none text-muted">
+                    <i class="bi bi-whatsapp text-success me-1"></i> Precisa de ajuda? Fale com a Arena
+                </a>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Função de Copiar Código PIX
+    function copiarPix() {
+        const copyInput = document.getElementById("pixCodeInput");
+        const btn = document.getElementById("btnCopyPix");
+        const copyIcon = document.getElementById("copyIcon");
+        const copyText = document.getElementById("copyText");
+
+        if (!copyInput) return;
+
+        const textToCopy = copyInput.value;
+
+        // Clipboard API moderna
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(textToCopy).then(showCopiedState);
+        } else {
+            // Fallback para navegadores legados / sem HTTPS estrito
+            copyInput.classList.remove('visually-hidden');
+            copyInput.select();
+            copyInput.setSelectionRange(0, 99999);
+            try {
+                document.execCommand('copy');
+                showCopiedState();
+            } catch (err) {
+                alert("Copie o código manualmente: " + textToCopy);
+            }
+            copyInput.classList.add('visually-hidden');
+        }
+
+        function showCopiedState() {
+            btn.classList.add('copied');
+            copyIcon.className = "bi bi-check-lg fs-5";
+            copyText.textContent = "Código Copiado! 🚀";
+
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                copyIcon.className = "bi bi-clipboard2-check fs-5";
+                copyText.textContent = "Copiar Código PIX";
+            }, 3500);
+        }
+    }
+
+    // 2. Timer Regressivo de 15 minutos
+    let remainingSeconds = parseInt("{{ remaining_seconds|default:900 }}", 10);
+    const timerDisplay = document.getElementById("timerDisplay");
+    const timerBadge = document.getElementById("timerBadge");
+
+    function updateCountdown() {
+        if (remainingSeconds <= 0) {
+            timerDisplay.textContent = "00:00";
+            if (timerBadge) {
+                timerBadge.classList.add('expiring-soon');
+                timerBadge.innerHTML = '<i class="bi bi-x-circle-fill"></i> <span>Tempo expirado!</span>';
+            }
+            clearInterval(timerInterval);
+            clearInterval(statusPollInterval);
+
+            setTimeout(() => {
+                alert("O tempo de 15 minutos para este pagamento expirou. O horário foi liberado.");
+                window.location.href = "{% url 'scheduler:arena_home' arena_slug=booking.arena.slug %}";
+            }, 1000);
+            return;
+        }
+
+        const mins = Math.floor(remainingSeconds / 60);
+        const secs = remainingSeconds % 60;
+        timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+        if (remainingSeconds <= 120 && timerBadge) {
+            timerBadge.classList.add('expiring-soon');
+        }
+
+        remainingSeconds--;
+    }
+
+    updateCountdown();
+    const timerInterval = setInterval(updateCountdown, 1000);
+
+    // 3. Polling em Tempo Real do Status do Pagamento (A cada 3 segundos)
+    const bookingId = "{{ booking.id }}";
+    let isRedirecting = false;
+
+    const statusPollInterval = setInterval(function() {
+        if (isRedirecting) return;
+
+        const timeStamp = new Date().getTime();
+        const fetchUrl = `{% url 'scheduler:check_payment_status' booking_id=booking.id %}?t=${timeStamp}`;
+
+        fetch(fetchUrl)
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP error " + res.status);
+                return res.json();
+            })
+            .then(data => {
+                if (data.status === 'CONFIRMED') {
+                    isRedirecting = true;
+                    clearInterval(statusPollInterval);
+                    clearInterval(timerInterval);
+
+                    // Exibe a tela de celebração de sucesso
+                    const overlay = document.getElementById("successOverlay");
+                    if (overlay) overlay.classList.remove('d-none');
+
+                    const successUrl = "{% url 'scheduler:booking_success' arena_slug=booking.arena.slug booking_id=booking.id %}";
+
+                    setTimeout(() => {
+                        window.location.replace(successUrl);
+                    }, 1200);
+
+                } else if (data.status === 'CANCELED') {
+                    clearInterval(statusPollInterval);
+                    clearInterval(timerInterval);
+                    alert("Esta reserva foi cancelada.");
+                    window.location.href = "{% url 'scheduler:arena_home' arena_slug=booking.arena.slug %}";
+                }
+            })
+            .catch(err => {
+                console.warn("Consulta de status pendente...", err);
+            });
+    }, 3000);
+</script>
+
+</body>
+</html>

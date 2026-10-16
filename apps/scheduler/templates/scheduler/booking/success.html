@@ -1,0 +1,160 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva Confirmada - {{ booking.arena.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .receipt-card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            overflow: hidden;
+            background: white;
+            position: relative;
+        }
+        /* Efeito de "picote" de ticket no topo */
+        .receipt-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(135deg, transparent 5px, #198754 0) 0 0, linear-gradient(225deg, transparent 5px, #198754 0) 0 0;
+            background-size: 20px 20px;
+            background-repeat: repeat-x;
+        }
+        .bg-success-brand {
+            background-color: #198754; /* Verde sucesso */
+        }
+        .dashed-line {
+            border-top: 2px dashed #dee2e6;
+            margin: 20px 0;
+        }
+        @media print {
+            .d-print-none { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            .receipt-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+            .container { max-width: 100% !important; padding: 0 !important; }
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center py-5">
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5 col-lg-4">
+
+                <div class="receipt-card">
+
+                    <div class="bg-success-brand text-white text-center pt-5 pb-4 px-4">
+                        <div class="bg-white text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 80px; height: 80px;">
+                            <i class="bi bi-check-lg" style="font-size: 3rem;"></i>
+                        </div>
+                        <h2 class="fw-bold mb-1">Agendado!</h2>
+                        <p class="opacity-75 mb-0 small">Reserva #{{ booking.id }} confirmada.</p>
+                    </div>
+
+                    <div class="card-body p-4">
+
+                        <div class="text-center mb-4">
+                            <h5 class="fw-bold text-dark">{{ booking.court.name }}</h5>
+                            <div class="d-flex justify-content-center gap-3 mt-2">
+                                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                                    <i class="bi bi-calendar me-1"></i> {{ booking.start_time|date:"d/m/Y" }}
+                                </span>
+                                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                                    <i class="bi bi-clock me-1"></i> {{ booking.start_time|date:"H:i" }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <ul class="list-group list-group-flush small mb-3">
+                            <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-1">
+                                <span class="text-muted">Aluguel Quadra</span>
+                                <span class="fw-bold text-success"><i class="bi bi-check-circle-fill"></i> Incluso</span>
+                            </li>
+
+                            {% if booking.wants_ball %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-1">
+                                <span class="text-muted">Bola Extra</span>
+                                <span class="fw-bold text-success"><i class="bi bi-check-circle-fill"></i> Incluso</span>
+                            </li>
+                            {% endif %}
+
+                            {% if booking.wants_racket %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-1">
+                                <span class="text-muted">Raquete</span>
+                                <span class="fw-bold text-success"><i class="bi bi-check-circle-fill"></i> Incluso</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+
+                        <div class="dashed-line"></div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Valor Total</span>
+                            <span class="fw-bold">R$ {{ booking.price|stringformat:".2f" }}</span>
+                        </div>
+
+                        {% if booking.amount_paid > 0 %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Pago via Pix</span>
+                            <span class="fw-bold text-success">- R$ {{ booking.amount_paid|stringformat:".2f" }}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if booking.payment_status == 'PARTIAL' %}
+                             <div class="bg-warning bg-opacity-10 p-3 rounded-3 mt-3 border border-warning">
+                                <div class="d-flex justify-content-between align-items-center text-warning-emphasis">
+                                    <span class="fw-bold small text-uppercase">Falta Pagar (No Local)</span>
+                                    <span class="fw-bold fs-5">R$ {{ booking.remaining_balance|stringformat:".2f" }}</span>
+                                </div>
+                            </div>
+                        {% elif booking.payment_status == 'PENDING' and booking.amount_paid == 0 %}
+                            <div class="bg-primary bg-opacity-10 p-3 rounded-3 mt-3 border border-primary text-start">
+                                <div class="d-flex justify-content-between align-items-center text-primary-emphasis">
+                                    <span class="fw-bold small text-uppercase"><i class="bi bi-geo-alt-fill me-1"></i>Pagar na Arena</span>
+                                    <span class="fw-bold fs-5">R$ {{ booking.price|stringformat:".2f" }}</span>
+                                </div>
+                                <small class="text-secondary d-block mt-1">Realize o pagamento no balcão/recepção ao chegar para a partida.</small>
+                            </div>
+                        {% else %}
+                            <div class="bg-success bg-opacity-10 p-2 rounded-3 mt-3 text-center">
+                                <span class="fw-bold text-success small text-uppercase"><i class="bi bi-shield-check me-1"></i> Totalmente Pago</span>
+                            </div>
+                        {% endif %}
+
+                        {% if booking.transaction_id %}
+                        <div class="mt-4 text-center">
+                            <p class="text-muted small mb-1">ID da Transação</p>
+                            <code class="bg-light px-2 py-1 rounded">{{ booking.transaction_id }}</code>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mt-4 d-print-none">
+                    <button type="button" onclick="window.print()" class="btn btn-outline-dark rounded-pill px-4 py-2 fw-bold shadow-sm">
+                        <i class="bi bi-printer me-2"></i> Imprimir Comprovante
+                    </button>
+                    <a href="{% url 'scheduler:arena_home' arena_slug=booking.arena.slug %}" class="btn btn-dark rounded-pill px-4 py-2 fw-bold shadow-sm">
+                        <i class="bi bi-arrow-left me-2"></i> Voltar para Início
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

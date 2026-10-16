@@ -1,0 +1,163 @@
+{% extends 'backoffice/base_dashboard.html' %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 border-bottom pb-3">
+        <div>
+            <h1 class="h2 mb-1">Detalhes do Cliente</h1>
+            <p class="text-body-secondary small mb-0">Visualize todas as informações de {{ customer.name }}.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
+            <a href="{% url 'backoffice:customer_list' arena_slug=arena.slug %}" class="btn btn-action">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <a href="{% url 'backoffice:customer_edit' arena_slug=arena.slug pk=customer.pk %}" class="btn btn-action-primary">
+                <i class="bi bi-pencil me-1"></i> Editar
+            </a>
+            <a href="{% url 'backoffice:customer_delete' arena_slug=arena.slug pk=customer.pk %}" class="btn btn-action-danger">
+                <i class="bi bi-trash"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Coluna de Informações do Cliente -->
+        <div class="col-12 col-md-5 col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4 text-center">
+                    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-person-fill fs-1"></i>
+                    </div>
+                    <h4 class="fw-bold mb-1">{{ customer.name }}</h4>
+                    <p class="text-muted small mb-3">Cliente desde {{ customer.created_at|date:"d/m/Y" }}</p>
+                    
+                    <div class="d-flex justify-content-center gap-2 mb-4">
+                        {% if customer.phone %}
+                        <a href="https://wa.me/55{{ customer.phone }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                            <i class="bi bi-whatsapp me-1"></i> Mensagem
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <hr class="opacity-10">
+
+                    <div class="text-start mt-4">
+                        <h6 class="fw-bold text-uppercase text-muted small mb-3">Contato e Pessoal</h6>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Telefone (WhatsApp)</label>
+                            <span class="fw-medium">{{ customer.formatted_phone|default:"Não informado" }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Email</label>
+                            <span class="fw-medium">{{ customer.email|default:"Não informado" }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">CPF</label>
+                            <span class="fw-medium">{{ customer.cpf|default:"Não informado" }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block mb-1">Data de Nascimento</label>
+                            <span class="fw-medium">{{ customer.birth_date|date:"d/m/Y"|default:"Não informado" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna de Outras Informações e Reservas -->
+        <div class="col-12 col-md-7 col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-bottom px-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-info-circle text-warning me-2"></i> Observações</h5>
+                </div>
+                <div class="card-body p-4">
+                    {% if customer.observation %}
+                        <p class="mb-0">{{ customer.observation|linebreaksbr }}</p>
+                    {% else %}
+                        <p class="text-muted mb-0 opacity-75 fst-italic">Nenhuma observação cadastrada para este cliente.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Adicionando Card de Resumo de Reservas (Opcional, mas útil) -->
+            <div class="row g-3">
+                <div class="col-12 col-sm-6">
+                    <div class="card shadow-sm border-0 bg-light h-100">
+                        <div class="card-body p-3 text-center">
+                            <h6 class="text-muted text-uppercase small fw-bold mb-2">Total de Reservas</h6>
+                            <h2 class="fw-bold text-dark mb-0">{{ customer.total_bookings }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <div class="card shadow-sm border-0 bg-light h-100">
+                        <div class="card-body p-3 text-center">
+                            <h6 class="text-muted text-uppercase small fw-bold mb-2">Status</h6>
+                            {% if customer.is_blocked %}
+                                <span class="badge bg-danger px-3 py-2 fs-6 rounded-pill mt-1">Bloqueado</span>
+                            {% else %}
+                                <span class="badge bg-success px-3 py-2 fs-6 rounded-pill mt-1">Ativo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm border-0 mt-4">
+                 <div class="card-header bg-transparent border-bottom px-4 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-check text-warning me-2"></i> Últimas Reservas</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 table-hover">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Data/Hora</th>
+                                    <th>Quadra</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-4">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in customer.bookings.all|dictsortreversed:"start_time"|slice:":5" %}
+                                <tr>
+                                    <td class="ps-4 text-nowrap">
+                                        <div class="fw-bold">{{ booking.start_time|date:"d/m/Y" }}</div>
+                                        <small class="text-muted">{{ booking.start_time|date:"H:i" }} - {{ booking.end_time|date:"H:i" }}</small>
+                                    </td>
+                                    <td>{{ booking.court.name }}</td>
+                                    <td>
+                                        {% if booking.status == 'CONFIRMED' %}
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Confirmado</span>
+                                        {% elif booking.status == 'PENDING' %}
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Pendente</span>
+                                        {% elif booking.status == 'CANCELED' %}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Cancelado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4 fw-medium">
+                                        R$ {{ booking.price }}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        Nenhuma reserva encontrada.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

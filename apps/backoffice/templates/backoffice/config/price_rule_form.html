@@ -1,0 +1,134 @@
+{% extends "backoffice/base_dashboard.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap align-items-center pt-3 pb-2 mb-3 border-bottom gap-2">
+    <h1 class="h2 mb-0">{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Regra de Preço</h1>
+    <a href="{% url 'backoffice:price_rules' arena_slug=arena.slug %}" class="btn btn-action">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger mb-3">
+                            {% for error in form.non_field_errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <h6 class="text-uppercase text-body-secondary fw-bold small mb-3">Identificação da Regra</h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                            {{ form.name }}
+                            <div class="form-text small">Ex: Horário Nobre, Promoção Manhã...</div>
+                            {% if form.name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.name.errors %}
+                                        <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold" for="{{ form.court.id_for_label }}">{{ form.court.label }}</label>
+                            {{ form.court }}
+                            <div class="form-text small">Deixe em branco para aplicar a TODAS as quadras.</div>
+                            {% if form.court.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.court.errors %}
+                                        <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-success" for="{{ form.price.id_for_label }}">{{ form.price.label }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-success text-white">R$</span>
+                            {{ form.price }}
+                        </div>
+                        <div class="form-text small">Valor da hora quando esta regra estiver ativa.</div>
+                        {% if form.price.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.price.errors %}
+                                    <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h6 class="text-uppercase text-body-secondary fw-bold small mb-3">Horários e Dias</h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold" for="{{ form.start_time.id_for_label }}">{{ form.start_time.label }}</label>
+                            {{ form.start_time }}
+                            {% if form.start_time.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.start_time.errors %}
+                                        <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold" for="{{ form.end_time.id_for_label }}">{{ form.end_time.label }}</label>
+                            {{ form.end_time }}
+                            {% if form.end_time.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.end_time.errors %}
+                                        <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold mb-2">Dias da Semana Ativos</label>
+                        <div class="card bg-body-tertiary border p-3">
+                            <div class="d-flex flex-wrap gap-3">
+                                {% for checkbox in form.days %}
+                                    <div class="form-check">
+                                        {{ checkbox.tag }}
+                                        <label class="form-check-label fw-medium" for="{{ checkbox.id_for_label }}">
+                                            {{ checkbox.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="form-text small mt-2">Selecione os dias em que este preço especial é válido.</div>
+                        {% if form.days.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.days.errors %}
+                                    <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-action-primary py-2 fw-semibold">
+                            <i class="bi bi-check-lg me-1"></i> Salvar Regra
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
