@@ -123,23 +123,29 @@ MIDDLEWARE = [
 # Configurações de CORS e Iframe
 # No modo demonstração (sandbox), permite exibição no iframe do portfólio
 if DEMO_MODE:
-    X_FRAME_OPTIONS = 'ALLOWALL'
+    # Remove X-Frame-Options para permitir embed no iframe do portfólio
+    if 'django.middleware.clickjacking.XFrameOptionsMiddleware' in MIDDLEWARE:
+        MIDDLEWARE.remove('django.middleware.clickjacking.XFrameOptionsMiddleware')
+
+    # Cookies cross-site para funcionar dentro do iframe no Vercel/Localhost (exige None + Secure)
+    SESSION_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SECURE = True
 else:
     X_FRAME_OPTIONS = config('X_FRAME_OPTIONS', default='SAMEORIGIN')
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=(not DEBUG), cast=bool)
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=(not DEBUG), cast=bool)
 
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default='http://localhost:3000,http://127.0.0.1:3000',
     cast=Csv()
 )
-CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=DEBUG, cast=bool)
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=DEMO_MODE, cast=bool)
 CORS_ALLOW_CREDENTIALS = True
-
-# Segurança de Cookies e Sessão em Produção (HTTPS)
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=(not DEBUG), cast=bool)
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=(not DEBUG), cast=bool)
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
